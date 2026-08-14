@@ -180,12 +180,12 @@
     "fecha_confirmacion": "2026-08-14"
   },
   {
-    "factura_numero": "00004-00006944",
-    "cuit_cliente": "30709930229",
-    "monto": 82000,
+    "factura_numero": "00004-00006957",
+    "cuit_cliente": "30581088554",
+    "monto": 265000,
     "origen": "auto",
     "extracto": "RCP - Santander Resumen - Abril 2026.pdf",
-    "tipo_movimiento": "Credito transf online banking emp",
+    "tipo_movimiento": "Pago a proveedores recibido",
     "fecha_aprox": "04/05/26",
     "numero_transaccion": null,
     "confirmado_por": "s.echavarria@giwa-ia.com",
