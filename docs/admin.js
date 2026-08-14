@@ -31,6 +31,28 @@ async function llamarBackend(path, options = {}) {
   return res.json();
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// El plan free de Render "duerme" el backend a los 15 min sin uso: la primera
+// request tras eso puede fallar directo (network error, "Failed to fetch")
+// en vez de simplemente tardar. Reintentamos con avisos en vez de mostrar
+// un error seco la primera vez que alguien entra después de un rato.
+async function cargarConReintentos(gateError) {
+  const esperas = [3000, 5000, 8000];
+  for (let intento = 0; intento <= esperas.length; intento++) {
+    try {
+      await cargarDatosAutenticado();
+      return;
+    } catch (err) {
+      const esErrorDeRed = err instanceof TypeError;
+      if (!esErrorDeRed || intento === esperas.length) throw err;
+      gateError.hidden = false;
+      gateError.textContent = "Despertando el servidor (plan gratis, puede tardar unos segundos)…";
+      await sleep(esperas[intento]);
+    }
+  }
+}
+
 async function handleGoogleCredential(response) {
   const payload = JSON.parse(atob(response.credential.split(".")[1]));
   const gateError = document.getElementById("gate-error");
@@ -40,13 +62,14 @@ async function handleGoogleCredential(response) {
   // para no mostrar el portal ni por un instante si claramente va a fallar.
   ID_TOKEN = response.credential;
   try {
-    await cargarDatosAutenticado();
+    await cargarConReintentos(gateError);
   } catch (err) {
     ID_TOKEN = null;
     gateError.hidden = false;
-    gateError.textContent =
-      err.message.startsWith("403")
-        ? "Tu cuenta de Google no tiene acceso a este panel."
+    gateError.textContent = err.message.startsWith("403")
+      ? "Tu cuenta de Google no tiene acceso a este panel."
+      : err instanceof TypeError
+        ? "No se pudo conectar con el servidor. Probá de nuevo en un momento."
         : "No se pudo validar el login: " + err.message;
     return;
   }
