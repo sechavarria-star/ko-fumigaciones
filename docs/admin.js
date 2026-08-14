@@ -38,7 +38,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // en vez de simplemente tardar. Reintentamos con avisos en vez de mostrar
 // un error seco la primera vez que alguien entra después de un rato.
 async function cargarConReintentos(gateError) {
-  const esperas = [3000, 5000, 8000];
+  const esperas = [3000, 5000, 8000, 12000, 15000];
   for (let intento = 0; intento <= esperas.length; intento++) {
     try {
       await cargarDatosAutenticado();
