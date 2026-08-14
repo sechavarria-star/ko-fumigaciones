@@ -8,5 +8,10 @@
     "nombre": "Victoria",
     "apellido": "Gegey",
     "perfil": "usuario"
+  },
+  "d.camps@giwa-ia.com": {
+    "nombre": "Diego",
+    "apellido": "Camps",
+    "perfil": "admin"
   }
 }
