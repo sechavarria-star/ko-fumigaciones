@@ -3,5 +3,10 @@
     "nombre": "Sebastian",
     "apellido": "Echavarria",
     "perfil": "admin"
+  },
+  "v.gagey@giwa-ia.com": {
+    "nombre": "Victoria",
+    "apellido": "Gegey",
+    "perfil": "usuario"
   }
 }
