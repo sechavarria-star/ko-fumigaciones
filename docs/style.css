@@ -159,17 +159,46 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   font-size: 1.4rem; cursor: pointer; line-height: 1;
 }
 .modal h3 { margin: 0 0 4px; }
-.modal .modal-cuit { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 16px; }
-.factura-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-  gap: 12px;
+.modal .modal-cuit { color: var(--text-dim); font-size: 0.85rem; margin: 0; }
+
+.modal-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 14px; }
+.modal-nav button {
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; width: 28px; height: 28px; cursor: pointer; line-height: 1;
 }
-.factura-row:last-child { border-bottom: none; }
-.factura-row .num-fact { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 0.85rem; }
-.factura-row .detalle { font-size: 0.85rem; color: var(--text-dim); }
-.factura-row .monto { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
-.factura-row .pago-info { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+.modal-nav button:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.modal-nav button:disabled { opacity: 0.4; cursor: default; }
+.modal-nav .modal-contador { font-size: 0.78rem; color: var(--text-dim); }
+
+.modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+
+.timeline { position: relative; padding-left: 20px; }
+.timeline::before { content: ""; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
+.timeline-item { position: relative; padding-bottom: 18px; }
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-dot {
+  position: absolute; left: -20px; top: 3px; width: 10px; height: 10px;
+  border-radius: 50%; background: var(--panel); border: 2px solid var(--warn);
+}
+.timeline-dot.pagada { background: var(--ok); border-color: var(--ok); }
+.timeline-fecha { font-size: 0.72rem; color: var(--text-dim); margin-bottom: 2px; }
+.timeline-item .detalle { font-size: 0.85rem; margin-bottom: 8px; }
+.timeline-item .num-fact { color: var(--text-dim); font-weight: 400; }
+.timeline-cuenta { display: flex; gap: 18px; font-variant-numeric: tabular-nums; margin-bottom: 4px; }
+.timeline-cuenta div { font-size: 0.85rem; }
+.timeline-cuenta .k { display: block; color: var(--text-dim); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 1px; }
+.pago-info { font-size: 0.75rem; margin-top: 2px; }
+.pago-info.ok-text { color: var(--ok); }
+.pago-info.warn-text { color: var(--warn); }
+.timeline-item .btn-confirmar-pago { margin-top: 8px; }
+
+.modal-saldo {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--border);
+  font-size: 0.9rem; font-weight: 600;
+}
+.modal-saldo .ok-text { color: var(--ok); }
+.modal-saldo .warn-text { color: var(--warn); }
 
 .gate {
   min-height: calc(100vh - 65px);

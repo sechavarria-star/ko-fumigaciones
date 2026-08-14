@@ -69,6 +69,19 @@ function recomputar() {
   renderMeta();
   renderKpis();
   renderTabla();
+
+  // Si el modal de un cliente está abierto (por ej. se acaba de confirmar un
+  // pago desde ahí), lo refrescamos contra los datos nuevos en vez de dejarlo
+  // desactualizado hasta que el usuario lo cierre y lo vuelva a abrir.
+  if (document.getElementById("modal-backdrop").classList.contains("open") && MODAL_LISTA[MODAL_IDX]) {
+    const cuitAbierto = MODAL_LISTA[MODAL_IDX].cuit;
+    const listaNueva = clientesFiltrados();
+    const idxNuevo = listaNueva.findIndex((c) => c.cuit === cuitAbierto);
+    MODAL_LISTA = listaNueva;
+    MODAL_IDX = idxNuevo === -1 ? 0 : idxNuevo;
+    if (listaNueva.length) renderModal();
+    else document.getElementById("modal-backdrop").classList.remove("open");
+  }
 }
 
 let RESUMEN = null;
@@ -102,14 +115,18 @@ function renderKpis() {
   `;
 }
 
-function renderTabla() {
-  const tbody = document.getElementById("tbody-clientes");
-  const clientes = CLIENTES_VIEW.filter((c) => {
+function clientesFiltrados() {
+  return CLIENTES_VIEW.filter((c) => {
     if (filtroActual === "todos") return true;
     if (filtroActual === "pendiente") return c.total_pendiente > 0;
     if (filtroActual === "pagada") return c.total_pendiente === 0;
     return true;
   });
+}
+
+function renderTabla() {
+  const tbody = document.getElementById("tbody-clientes");
+  const clientes = clientesFiltrados();
 
   tbody.innerHTML = clientes
     .map((c) => {
@@ -136,48 +153,97 @@ function formatCuit(cuit) {
   return `${cuit.slice(0, 2)}-${cuit.slice(2, 10)}-${cuit.slice(10)}`;
 }
 
+function parseFechaAr(f) {
+  const [d, m, a] = f.split("/").map(Number);
+  return new Date(a, m - 1, d);
+}
+
 function abrirModal(cuit) {
-  const cliente = CLIENTES_VIEW.find((c) => c.cuit === cuit);
+  const lista = clientesFiltrados();
+  const idx = lista.findIndex((c) => c.cuit === cuit);
+  if (idx === -1) return;
+  MODAL_LISTA = lista;
+  MODAL_IDX = idx;
+  renderModal();
+  document.getElementById("modal-backdrop").classList.add("open");
+}
+
+let MODAL_LISTA = [];
+let MODAL_IDX = 0;
+
+function renderModal() {
+  const cliente = MODAL_LISTA[MODAL_IDX];
   const content = document.getElementById("modal-content");
+  const alDia = cliente.total_pendiente === 0;
+
+  const facturasOrden = [...cliente.facturas].sort((a, b) => parseFechaAr(a.fecha_emision) - parseFechaAr(b.fecha_emision));
+  let saldo = 0;
+  const filas = facturasOrden.map((f) => {
+    const haber = f.estado === "pagada" ? f.total : 0;
+    saldo += f.total - haber;
+    return { ...f, haber, saldo };
+  });
+
   content.innerHTML = `
-    <h3>${cliente.nombre}</h3>
-    <div class="modal-cuit">CUIT ${formatCuit(cliente.cuit)}</div>
-    ${cliente.facturas
-      .map((f) => {
-        const badge = f.estado === "pagada" ? `<span class="badge ok">Pagada</span>` : `<span class="badge warn">Pendiente</span>`;
-        let pagoInfo = "";
-        if (f.pago) {
-          if (f.pago.origen === "manual") {
-            pagoInfo = `<div class="pago-info">Confirmado a mano · transacción ${f.pago.numero_transaccion} · ingresó ${f.pago.fecha_confirmacion}${f.pago.confirmado_por ? " · " + f.pago.confirmado_por : ""}</div>`;
-          } else {
-            pagoInfo = `<div class="pago-info">Detectado en extracto de ${f.pago.extracto}${f.pago.fecha_aprox ? " · " + f.pago.fecha_aprox : ""}</div>`;
+    <div class="modal-nav">
+      <button id="modal-prev" aria-label="Cliente anterior" ${MODAL_LISTA.length < 2 ? "disabled" : ""}>&larr;</button>
+      <span class="modal-contador">${MODAL_IDX + 1} de ${MODAL_LISTA.length}</span>
+      <button id="modal-next" aria-label="Próximo cliente" ${MODAL_LISTA.length < 2 ? "disabled" : ""}>&rarr;</button>
+    </div>
+    <div class="modal-head">
+      <div>
+        <h3>${cliente.nombre}</h3>
+        <div class="modal-cuit">CUIT ${formatCuit(cliente.cuit)}</div>
+      </div>
+      <span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span>
+    </div>
+    <div class="timeline">
+      ${filas
+        .map((f) => {
+          let pagoInfo = "Sin pago registrado";
+          if (f.pago) {
+            pagoInfo =
+              f.pago.origen === "manual"
+                ? `Confirmado a mano · transacción ${f.pago.numero_transaccion} · ingresó ${f.pago.fecha_confirmacion}${f.pago.confirmado_por ? " · " + f.pago.confirmado_por : ""}`
+                : `Detectado en extracto de ${f.pago.extracto}${f.pago.fecha_aprox ? " · " + f.pago.fecha_aprox : ""}`;
           }
-        }
-        const accionConfirmar =
-          f.estado === "pendiente" && puedeEscribir()
-            ? `<button class="btn-confirmar-pago" data-factura="${f.numero}" data-cuit="${cliente.cuit}" data-monto="${f.total}">Confirmar pago manual</button>`
-            : "";
-        return `
-          <div class="factura-row">
-            <div>
-              <div class="num-fact">FC ${f.numero} · ${f.fecha_emision}</div>
-              <div class="detalle">${f.detalle}</div>
-              ${pagoInfo}
+          const accionConfirmar =
+            f.estado === "pendiente" && puedeEscribir()
+              ? `<button class="btn-confirmar-pago" data-factura="${f.numero}" data-cuit="${cliente.cuit}" data-monto="${f.total}">Confirmar pago manual</button>`
+              : "";
+          return `
+            <div class="timeline-item">
+              <div class="timeline-dot ${f.estado === "pagada" ? "pagada" : ""}"></div>
+              <div class="timeline-fecha">${f.fecha_emision}</div>
+              <div class="detalle">${f.detalle} <span class="num-fact">· FC ${f.numero}</span></div>
+              <div class="timeline-cuenta">
+                <div><span class="k">Debe</span>${fmtMoney(f.total)}</div>
+                <div><span class="k">Haber</span>${f.haber ? fmtMoney(f.haber) : "—"}</div>
+                <div><span class="k">Saldo</span>${fmtMoney(f.saldo)}</div>
+              </div>
+              <div class="pago-info ${f.estado === "pagada" ? "ok-text" : "warn-text"}">${pagoInfo}</div>
               ${accionConfirmar}
             </div>
-            <div>
-              <div class="monto">${fmtMoney(f.total)}</div>
-              ${badge}
-            </div>
-          </div>
-        `;
-      })
-      .join("")}
+          `;
+        })
+        .join("")}
+    </div>
+    <div class="modal-saldo">
+      <span>Saldo pendiente</span>
+      <span class="${alDia ? "ok-text" : "warn-text"}">${fmtMoney(cliente.total_pendiente)}</span>
+    </div>
   `;
-  document.getElementById("modal-backdrop").classList.add("open");
 
   content.querySelectorAll(".btn-confirmar-pago").forEach((btn) => {
     btn.addEventListener("click", () => window.abrirFormConfirmarPago(btn.dataset));
+  });
+  document.getElementById("modal-prev")?.addEventListener("click", () => {
+    MODAL_IDX = (MODAL_IDX - 1 + MODAL_LISTA.length) % MODAL_LISTA.length;
+    renderModal();
+  });
+  document.getElementById("modal-next")?.addEventListener("click", () => {
+    MODAL_IDX = (MODAL_IDX + 1) % MODAL_LISTA.length;
+    renderModal();
   });
 }
 
