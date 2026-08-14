@@ -82,9 +82,19 @@ async function handleGoogleCredential(response) {
   document.getElementById("gate").hidden = true;
   document.getElementById("portal").hidden = false;
   document.getElementById("signed-in-as").hidden = false;
-  document.getElementById("signed-in-email").textContent = payload.email;
-  document.getElementById("admin-panel").hidden = false;
-  renderTablaClientesAdmin();
+  document.getElementById("signed-in-email").textContent = `${payload.email} · ${etiquetaPerfil(YO.perfil)}`;
+
+  // "usuario" es de solo lectura: ni siquiera se muestra el panel de admin.
+  // "supervisor" ve el panel pero sin la pestaña de Usuarios (solo admin).
+  if (puedeEscribir()) {
+    document.getElementById("admin-panel").hidden = false;
+    document.querySelectorAll(".solo-admin").forEach((el) => (el.hidden = YO.perfil !== "admin"));
+    renderTablaClientesAdmin();
+  }
+}
+
+function etiquetaPerfil(perfil) {
+  return { admin: "Admin", supervisor: "Supervisor", usuario: "Usuario" }[perfil] || perfil;
 }
 
 function initGoogleSignIn() {
@@ -125,6 +135,7 @@ document.getElementById("admin-tabs").addEventListener("click", (e) => {
   btn.classList.add("active");
   document.querySelectorAll(".admin-tab").forEach((t) => (t.hidden = true));
   document.getElementById(`admin-tab-${btn.dataset.tab}`).hidden = false;
+  if (btn.dataset.tab === "usuarios") cargarUsuarios();
 });
 
 // --- 1) confirmar pago manual ---
@@ -295,5 +306,54 @@ function renderTablaClientesAdmin() {
     .map(([cuit, info]) => `<tr><td class="cuit">${formatCuit(cuit)}</td><td>${info.nombre}</td><td>${info.condicion_iva || ""}</td></tr>`);
   tbody.innerHTML = filas.join("");
 }
+
+// --- 5) usuarios (solo admin) ---
+async function cargarUsuarios() {
+  if (YO.perfil !== "admin") return;
+  const tbody = document.getElementById("tbody-usuarios");
+  tbody.innerHTML = `<tr><td colspan="4">Cargando…</td></tr>`;
+  try {
+    const usuarios = await llamarBackend("/api/usuarios");
+    const filas = Object.entries(usuarios)
+      .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
+      .map(
+        ([email, info]) => `
+        <tr>
+          <td>${info.nombre} ${info.apellido}</td>
+          <td>${email}</td>
+          <td>${etiquetaPerfil(info.perfil)}</td>
+        </tr>`
+      );
+    tbody.innerHTML = filas.join("") || `<tr><td colspan="3">Sin usuarios cargados todavía.</td></tr>`;
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="3" class="warn-text">No se pudo cargar: ${err.message}</td></tr>`;
+  }
+}
+
+document.getElementById("form-usuario").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const email = fd.get("email").trim().toLowerCase();
+  if (!email.includes("@")) {
+    alert("Ingresá un email válido.");
+    return;
+  }
+  try {
+    await llamarBackend("/api/usuarios/upsert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        nombre: fd.get("nombre").trim(),
+        apellido: fd.get("apellido").trim(),
+        perfil: fd.get("perfil"),
+      }),
+    });
+    e.target.reset();
+    cargarUsuarios();
+  } catch (err) {
+    alert("No se pudo guardar el usuario: " + err.message);
+  }
+});
 
 window.addEventListener("load", initGoogleSignIn);

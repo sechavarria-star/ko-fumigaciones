@@ -9,6 +9,11 @@ let FACTURAS = [];
 let PAGOS = [];
 let CLIENTES_VIEW = [];
 let filtroActual = "todos";
+// El perfil (admin/supervisor/usuario) lo decide el backend, nunca el propio
+// navegador - esto es solo para mostrar/ocultar botones. Los permisos reales
+// se validan de nuevo en cada request al backend.
+let YO = null;
+const puedeEscribir = () => YO && (YO.perfil === "admin" || YO.perfil === "supervisor");
 
 // Todo el portal exige login de Google, no solo las acciones de escritura:
 // clientes.json/facturas.json/pagos.json ya NO se sirven como estáticos
@@ -20,6 +25,7 @@ async function cargarDatosAutenticado() {
   CLIENTES = datos.clientes;
   FACTURAS = datos.facturas;
   PAGOS = datos.pagos;
+  YO = datos.yo;
   recomputar();
 }
 
@@ -148,7 +154,7 @@ function abrirModal(cuit) {
           }
         }
         const accionConfirmar =
-          f.estado === "pendiente"
+          f.estado === "pendiente" && puedeEscribir()
             ? `<button class="btn-confirmar-pago" data-factura="${f.numero}" data-cuit="${cliente.cuit}" data-monto="${f.total}">Confirmar pago manual</button>`
             : "";
         return `

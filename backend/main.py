@@ -14,8 +14,13 @@ import pdf_extract
 logger = logging.getLogger("uvicorn.error")
 
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
+# ALLOWED_EMAILS es un allowlist de "romper vidrio": estos emails son admin
+# siempre, exista o no data/usuarios.json (para no poder quedar nunca afuera
+# del propio sistema si el archivo de usuarios se corrompe o queda vacío).
 ALLOWED_EMAILS = {e.strip().lower() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
 ALLOWED_ORIGINS = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
+PERFILES_VALIDOS = {"admin", "supervisor", "usuario"}
 
 app = FastAPI(title="KO Fumigaciones - backend admin")
 app.add_middleware(
@@ -41,7 +46,8 @@ async def excepcion_no_controlada(request: Request, exc: Exception):
 _google_request = google_requests.Request()
 
 
-def usuario_autorizado(authorization: str | None) -> str:
+def usuario_autorizado(authorization: str | None) -> dict:
+    """Valida el login de Google y devuelve {email, nombre, apellido, perfil}."""
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Falta el token de Google")
     token = authorization.removeprefix("Bearer ")
@@ -54,16 +60,36 @@ def usuario_autorizado(authorization: str | None) -> str:
         # públicos (típico en un arranque en frío) - no es que el token esté mal.
         logger.warning("No se pudo verificar el token de Google: %s", exc)
         raise HTTPException(503, "No se pudo validar el login con Google, probá de nuevo")
+
     email = payload.get("email", "").lower()
-    if not payload.get("email_verified") or email not in ALLOWED_EMAILS:
-        raise HTTPException(403, "Tu cuenta no tiene permiso para editar KO Fumigaciones")
-    return email
+    if not payload.get("email_verified"):
+        raise HTTPException(403, "Tu cuenta de Google no tiene el email verificado")
+
+    usuarios, _ = github_store.get_json("data/usuarios.json")
+    info = usuarios.get(email)
+
+    if email in ALLOWED_EMAILS:
+        return {
+            "email": email,
+            "nombre": info["nombre"] if info else payload.get("given_name", ""),
+            "apellido": info["apellido"] if info else payload.get("family_name", ""),
+            "perfil": "admin",
+        }
+    if info:
+        return {"email": email, "nombre": info["nombre"], "apellido": info["apellido"], "perfil": info["perfil"]}
+    raise HTTPException(403, "Tu cuenta no está dada de alta en KO Fumigaciones")
 
 
-# --- 1) confirmar pago manual ---
+def requerir_perfil(usuario: dict, *perfiles_permitidos: str) -> None:
+    if usuario["perfil"] not in perfiles_permitidos:
+        raise HTTPException(403, "Tu perfil no tiene permiso para hacer esto")
+
+
+# --- 1) confirmar pago manual (admin, supervisor) ---
 @app.post("/api/pagos/confirmar")
 def confirmar_pago(body: dict, authorization: str | None = Header(None)):
-    email = usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
     pagos, _ = github_store.get_json("data/pagos.json")
 
     if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
@@ -78,23 +104,24 @@ def confirmar_pago(body: dict, authorization: str | None = Header(None)):
         "tipo_movimiento": None,
         "fecha_aprox": None,
         "numero_transaccion": body["numero_transaccion"],
-        "confirmado_por": email,
+        "confirmado_por": usuario["email"],
         "fecha_confirmacion": body["fecha_ingreso"],
     }
     pagos.append(pago)
     github_store.put_json(
         "data/pagos.json",
         pagos,
-        f"Confirma pago manual FC {body['factura_numero']} ({email})",
-        email,
+        f"Confirma pago manual FC {body['factura_numero']} ({usuario['email']})",
+        usuario["email"],
     )
     return pago
 
 
-# --- 2) subir factura ---
+# --- 2) subir factura (admin, supervisor) ---
 @app.post("/api/facturas/parse")
 async def parse_factura(file: UploadFile, authorization: str | None = Header(None)):
-    usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
     texto = pdf_extract.extraer_texto(await file.read())
     draft = pdf_extract.parse_factura(texto)
 
@@ -111,7 +138,8 @@ async def parse_factura(file: UploadFile, authorization: str | None = Header(Non
 
 @app.post("/api/facturas/guardar")
 def guardar_factura(body: dict, authorization: str | None = Header(None)):
-    email = usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
     for campo in ["numero", "fecha_emision", "cuit_cliente", "total"]:
         if not body.get(campo):
             raise HTTPException(400, f"Falta el campo {campo}")
@@ -131,15 +159,16 @@ def guardar_factura(body: dict, authorization: str | None = Header(None)):
     }
     facturas.append(factura)
     github_store.put_json(
-        "data/facturas.json", facturas, f"Agrega factura {factura['numero']} ({email})", email
+        "data/facturas.json", facturas, f"Agrega factura {factura['numero']} ({usuario['email']})", usuario["email"]
     )
     return factura
 
 
-# --- 3) subir extracto (no se persiste el texto crudo, solo los matches) ---
+# --- 3) subir extracto (admin, supervisor; no se persiste el texto crudo) ---
 @app.post("/api/extractos/parse")
 async def parse_extracto(file: UploadFile, authorization: str | None = Header(None)):
-    usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
     texto = pdf_extract.extraer_texto(await file.read())
 
     clientes, _ = github_store.get_json("data/clientes.json")
@@ -172,7 +201,8 @@ async def parse_extracto(file: UploadFile, authorization: str | None = Header(No
 
 @app.post("/api/extractos/confirmar-match")
 def confirmar_match(body: dict, authorization: str | None = Header(None)):
-    email = usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
     pagos, _ = github_store.get_json("data/pagos.json")
 
     if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
@@ -187,23 +217,24 @@ def confirmar_match(body: dict, authorization: str | None = Header(None)):
         "tipo_movimiento": body.get("tipo_movimiento"),
         "fecha_aprox": body.get("fecha_aprox"),
         "numero_transaccion": None,
-        "confirmado_por": email,
+        "confirmado_por": usuario["email"],
         "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
     }
     pagos.append(pago)
     github_store.put_json(
         "data/pagos.json",
         pagos,
-        f"Confirma pago detectado en extracto para FC {body['factura_numero']} ({email})",
-        email,
+        f"Confirma pago detectado en extracto para FC {body['factura_numero']} ({usuario['email']})",
+        usuario["email"],
     )
     return pago
 
 
-# --- 4) clientes (CUIT como clave única) ---
+# --- 4) clientes (admin, supervisor; CUIT como clave única) ---
 @app.post("/api/clientes/upsert")
 def upsert_cliente(body: dict, authorization: str | None = Header(None)):
-    email = usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
     cuit = body.get("cuit", "")
     if not (cuit.isdigit() and len(cuit) == 11):
         raise HTTPException(400, "El CUIT tiene que tener 11 dígitos")
@@ -217,19 +248,53 @@ def upsert_cliente(body: dict, authorization: str | None = Header(None)):
         "provincia": body.get("provincia", ""),
     }
     github_store.put_json(
-        "data/clientes.json", clientes, f"{accion} cliente {cuit} ({email})", email
+        "data/clientes.json", clientes, f"{accion} cliente {cuit} ({usuario['email']})", usuario["email"]
     )
     return clientes[cuit]
+
+
+# --- 5) usuarios (solo admin; email como clave única) ---
+@app.get("/api/usuarios")
+def listar_usuarios(authorization: str | None = Header(None)):
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin")
+    usuarios, _ = github_store.get_json("data/usuarios.json")
+    return usuarios
+
+
+@app.post("/api/usuarios/upsert")
+def upsert_usuario(body: dict, authorization: str | None = Header(None)):
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin")
+
+    email = body.get("email", "").strip().lower()
+    perfil = body.get("perfil", "")
+    if not email or "@" not in email:
+        raise HTTPException(400, "Email inválido")
+    if perfil not in PERFILES_VALIDOS:
+        raise HTTPException(400, f"Perfil inválido, tiene que ser uno de: {', '.join(sorted(PERFILES_VALIDOS))}")
+
+    usuarios, _ = github_store.get_json("data/usuarios.json")
+    accion = "actualiza" if email in usuarios else "agrega"
+    usuarios[email] = {
+        "nombre": body.get("nombre", "").strip(),
+        "apellido": body.get("apellido", "").strip(),
+        "perfil": perfil,
+    }
+    github_store.put_json(
+        "data/usuarios.json", usuarios, f"{accion} usuario {email} como {perfil} ({usuario['email']})", usuario["email"]
+    )
+    return usuarios[email]
 
 
 # --- lectura del tablero: todo el portal, no solo las escrituras, exige login ---
 @app.get("/api/data")
 def obtener_datos(authorization: str | None = Header(None)):
-    usuario_autorizado(authorization)
+    usuario = usuario_autorizado(authorization)
     clientes, _ = github_store.get_json("data/clientes.json")
     facturas, _ = github_store.get_json("data/facturas.json")
     pagos, _ = github_store.get_json("data/pagos.json")
-    return {"clientes": clientes, "facturas": facturas, "pagos": pagos}
+    return {"clientes": clientes, "facturas": facturas, "pagos": pagos, "yo": usuario}
 
 
 @app.get("/api/health")

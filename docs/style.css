@@ -196,7 +196,7 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .admin-tab input[type="file"] { color: var(--text-dim); }
 
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.inline-form input {
+.inline-form input, .inline-form select {
   background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
   border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;
 }
