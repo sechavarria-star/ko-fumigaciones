@@ -1,11 +1,14 @@
 """
-Genera docs/data/facturas.json y docs/data/pagos.json (fuentes editables) a partir
+Genera data/facturas.json y data/pagos.json (fuentes editables) a partir
 de data/facturas_abril2026.csv y el matching contra data/extractos_raw/.
 
-A partir de acá estos dos JSON (+ docs/data/clientes.json) son la fuente de verdad
+A partir de acá estos dos JSON (+ data/clientes.json) son la fuente de verdad
 del sistema: el backend los va a ir actualizando por commits cuando se suban nuevas
 facturas/extractos o se confirmen pagos a mano. Este script solo sirve para el
 "seed" inicial (o para regenerar desde cero si hiciera falta).
+
+Nota: estos JSON NO viven en docs/ a propósito - si estuvieran ahí GitHub Pages
+los serviría como estáticos públicos, sin pasar por el login que exige el backend.
 """
 import json
 import glob
@@ -14,8 +17,8 @@ from pathlib import Path
 from match import EXTRACTOS_DIR, load_facturas, find_cuit_matches
 
 BASE = Path(__file__).parent
-FACTURAS_OUT = BASE / "docs" / "data" / "facturas.json"
-PAGOS_OUT = BASE / "docs" / "data" / "pagos.json"
+FACTURAS_OUT = BASE / "data" / "facturas.json"
+PAGOS_OUT = BASE / "data" / "pagos.json"
 
 
 def periodo_de(fecha_emision: str) -> str:

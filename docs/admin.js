@@ -31,11 +31,29 @@ async function llamarBackend(path, options = {}) {
   return res.json();
 }
 
-function handleGoogleCredential(response) {
-  ID_TOKEN = response.credential;
+async function handleGoogleCredential(response) {
   const payload = JSON.parse(atob(response.credential.split(".")[1]));
+  const gateError = document.getElementById("gate-error");
+  gateError.hidden = true;
+
+  // El token lo valida de verdad el backend en cada llamada; esto es solo
+  // para no mostrar el portal ni por un instante si claramente va a fallar.
+  ID_TOKEN = response.credential;
+  try {
+    await cargarDatosAutenticado();
+  } catch (err) {
+    ID_TOKEN = null;
+    gateError.hidden = false;
+    gateError.textContent =
+      err.message.startsWith("403")
+        ? "Tu cuenta de Google no tiene acceso a este panel."
+        : "No se pudo validar el login: " + err.message;
+    return;
+  }
+
   SIGNED_IN_EMAIL = payload.email;
-  document.getElementById("google-signin-btn").hidden = true;
+  document.getElementById("gate").hidden = true;
+  document.getElementById("portal").hidden = false;
   document.getElementById("signed-in-as").hidden = false;
   document.getElementById("signed-in-email").textContent = payload.email;
   document.getElementById("admin-panel").hidden = false;
@@ -43,21 +61,30 @@ function handleGoogleCredential(response) {
 }
 
 function initGoogleSignIn() {
-  if (!backendListo() || typeof google === "undefined") return;
+  if (!backendListo() || typeof google === "undefined") {
+    document.getElementById("gate-error").hidden = false;
+    document.getElementById("gate-error").textContent =
+      "Falta configurar el backend (ver SETUP.md) - el portal queda inaccesible.";
+    return;
+  }
   google.accounts.id.initialize({
     client_id: CONFIG.GOOGLE_CLIENT_ID,
     callback: handleGoogleCredential,
   });
   google.accounts.id.renderButton(document.getElementById("google-signin-btn"), {
     theme: "filled_black",
-    size: "medium",
+    size: "large",
   });
 }
 
 document.getElementById("btn-signout").addEventListener("click", () => {
   ID_TOKEN = null;
   SIGNED_IN_EMAIL = null;
-  document.getElementById("google-signin-btn").hidden = false;
+  CLIENTES = {};
+  FACTURAS = [];
+  PAGOS = [];
+  document.getElementById("portal").hidden = true;
+  document.getElementById("gate").hidden = false;
   document.getElementById("signed-in-as").hidden = true;
   document.getElementById("admin-panel").hidden = true;
   if (typeof google !== "undefined") google.accounts.id.disableAutoSelect();

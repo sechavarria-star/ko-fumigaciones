@@ -10,15 +10,16 @@ let PAGOS = [];
 let CLIENTES_VIEW = [];
 let filtroActual = "todos";
 
-async function cargar() {
-  const [clientes, facturas, pagos] = await Promise.all([
-    fetch("data/clientes.json", { cache: "no-store" }).then((r) => r.json()),
-    fetch("data/facturas.json", { cache: "no-store" }).then((r) => r.json()),
-    fetch("data/pagos.json", { cache: "no-store" }).then((r) => r.json()),
-  ]);
-  CLIENTES = clientes;
-  FACTURAS = facturas;
-  PAGOS = pagos;
+// Todo el portal exige login de Google, no solo las acciones de escritura:
+// clientes.json/facturas.json/pagos.json ya NO se sirven como estáticos
+// públicos (se movieron fuera de docs/), así que la única forma de leerlos
+// es a través del backend, que valida el token de Google antes de responder.
+// admin.js llama a esto recién después de un login exitoso.
+async function cargarDatosAutenticado() {
+  const datos = await llamarBackend("/api/data");
+  CLIENTES = datos.clientes;
+  FACTURAS = datos.facturas;
+  PAGOS = datos.pagos;
   recomputar();
 }
 
@@ -205,4 +206,5 @@ function aplicarClienteLocal(cuit, info) {
   recomputar();
 }
 
-cargar();
+// No hay cargar() automático: el dashboard queda vacío/oculto detrás del
+// gate de login (ver admin.js) hasta que haya un login de Google válido.

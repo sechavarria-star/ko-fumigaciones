@@ -42,7 +42,7 @@ def usuario_autorizado(authorization: str | None) -> str:
 @app.post("/api/pagos/confirmar")
 def confirmar_pago(body: dict, authorization: str | None = Header(None)):
     email = usuario_autorizado(authorization)
-    pagos, _ = github_store.get_json("docs/data/pagos.json")
+    pagos, _ = github_store.get_json("data/pagos.json")
 
     if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
         raise HTTPException(409, "Esa factura ya tiene un pago registrado")
@@ -61,7 +61,7 @@ def confirmar_pago(body: dict, authorization: str | None = Header(None)):
     }
     pagos.append(pago)
     github_store.put_json(
-        "docs/data/pagos.json",
+        "data/pagos.json",
         pagos,
         f"Confirma pago manual FC {body['factura_numero']} ({email})",
         email,
@@ -76,7 +76,7 @@ async def parse_factura(file: UploadFile, authorization: str | None = Header(Non
     texto = pdf_extract.extraer_texto(await file.read())
     draft = pdf_extract.parse_factura(texto)
 
-    clientes, _ = github_store.get_json("docs/data/clientes.json")
+    clientes, _ = github_store.get_json("data/clientes.json")
     cuit = draft.get("cuit_cliente")
     cliente = clientes.get(cuit) if cuit else None
 
@@ -94,7 +94,7 @@ def guardar_factura(body: dict, authorization: str | None = Header(None)):
         if not body.get(campo):
             raise HTTPException(400, f"Falta el campo {campo}")
 
-    facturas, _ = github_store.get_json("docs/data/facturas.json")
+    facturas, _ = github_store.get_json("data/facturas.json")
     if any(f["numero"] == body["numero"] for f in facturas):
         raise HTTPException(409, "Ya existe una factura con ese número")
 
@@ -109,7 +109,7 @@ def guardar_factura(body: dict, authorization: str | None = Header(None)):
     }
     facturas.append(factura)
     github_store.put_json(
-        "docs/data/facturas.json", facturas, f"Agrega factura {factura['numero']} ({email})", email
+        "data/facturas.json", facturas, f"Agrega factura {factura['numero']} ({email})", email
     )
     return factura
 
@@ -120,9 +120,9 @@ async def parse_extracto(file: UploadFile, authorization: str | None = Header(No
     usuario_autorizado(authorization)
     texto = pdf_extract.extraer_texto(await file.read())
 
-    clientes, _ = github_store.get_json("docs/data/clientes.json")
-    facturas, _ = github_store.get_json("docs/data/facturas.json")
-    pagos, _ = github_store.get_json("docs/data/pagos.json")
+    clientes, _ = github_store.get_json("data/clientes.json")
+    facturas, _ = github_store.get_json("data/facturas.json")
+    pagos, _ = github_store.get_json("data/pagos.json")
     cuits_ya_pagados = {p["factura_numero"] for p in pagos}
     pendientes = [f for f in facturas if f["numero"] not in cuits_ya_pagados]
 
@@ -151,7 +151,7 @@ async def parse_extracto(file: UploadFile, authorization: str | None = Header(No
 @app.post("/api/extractos/confirmar-match")
 def confirmar_match(body: dict, authorization: str | None = Header(None)):
     email = usuario_autorizado(authorization)
-    pagos, _ = github_store.get_json("docs/data/pagos.json")
+    pagos, _ = github_store.get_json("data/pagos.json")
 
     if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
         raise HTTPException(409, "Esa factura ya tiene un pago registrado")
@@ -170,7 +170,7 @@ def confirmar_match(body: dict, authorization: str | None = Header(None)):
     }
     pagos.append(pago)
     github_store.put_json(
-        "docs/data/pagos.json",
+        "data/pagos.json",
         pagos,
         f"Confirma pago detectado en extracto para FC {body['factura_numero']} ({email})",
         email,
@@ -186,7 +186,7 @@ def upsert_cliente(body: dict, authorization: str | None = Header(None)):
     if not (cuit.isdigit() and len(cuit) == 11):
         raise HTTPException(400, "El CUIT tiene que tener 11 dígitos")
 
-    clientes, _ = github_store.get_json("docs/data/clientes.json")
+    clientes, _ = github_store.get_json("data/clientes.json")
     accion = "actualiza" if cuit in clientes else "agrega"
     clientes[cuit] = {
         "nombre": body["nombre"],
@@ -195,9 +195,19 @@ def upsert_cliente(body: dict, authorization: str | None = Header(None)):
         "provincia": body.get("provincia", ""),
     }
     github_store.put_json(
-        "docs/data/clientes.json", clientes, f"{accion} cliente {cuit} ({email})", email
+        "data/clientes.json", clientes, f"{accion} cliente {cuit} ({email})", email
     )
     return clientes[cuit]
+
+
+# --- lectura del tablero: todo el portal, no solo las escrituras, exige login ---
+@app.get("/api/data")
+def obtener_datos(authorization: str | None = Header(None)):
+    usuario_autorizado(authorization)
+    clientes, _ = github_store.get_json("data/clientes.json")
+    facturas, _ = github_store.get_json("data/facturas.json")
+    pagos, _ = github_store.get_json("data/pagos.json")
+    return {"clientes": clientes, "facturas": facturas, "pagos": pagos}
 
 
 @app.get("/api/health")

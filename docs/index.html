@@ -14,7 +14,6 @@
     <h1>KO Fumigaciones</h1>
     <span class="subtitle">Conciliación de pagos</span>
     <div class="topbar-auth" id="topbar-auth">
-      <div id="google-signin-btn"></div>
       <div id="signed-in-as" class="signed-in-as" hidden>
         <span id="signed-in-email"></span>
         <button id="btn-signout" class="link-btn">Salir</button>
@@ -23,7 +22,16 @@
   </div>
 </header>
 
-<main class="wrap">
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <h2>Acceso restringido</h2>
+    <p class="hint">Iniciá sesión con una cuenta de Google autorizada para ver el estado de cuenta de KO Fumigaciones.</p>
+    <div id="google-signin-btn"></div>
+    <p class="gate-error" id="gate-error" hidden></p>
+  </div>
+</div>
+
+<main class="wrap" id="portal" hidden>
   <section class="meta" id="meta"></section>
 
   <section class="panel admin-panel" id="admin-panel" hidden>

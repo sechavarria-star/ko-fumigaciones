@@ -169,6 +169,27 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .factura-row .monto { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
 .factura-row .pago-info { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
+.gate {
+  min-height: calc(100vh - 65px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.gate-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+.gate-card h2 { margin: 0 0 8px; font-size: 1.15rem; }
+.gate-card .hint { color: var(--text-dim); font-size: 0.88rem; margin: 0 0 20px; }
+.gate-card #google-signin-btn { display: flex; justify-content: center; }
+.gate-error { color: var(--warn); font-size: 0.82rem; margin: 14px 0 0; }
+
 .admin-panel { margin-bottom: 20px; }
 .admin-body { padding: 18px; }
 .admin-tab .hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px; }
