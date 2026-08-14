@@ -1,5 +1,15 @@
 # Poner en marcha el panel de admin
 
+**Estado: completo (2026-08-14).** Los 4 pasos de abajo ya se hicieron:
+- Google OAuth Client ID creado en el proyecto `n8nGiwa`.
+- Token de GitHub (`ko-fumigaciones-backend`, sin expiración, solo Contents:R/W sobre este repo).
+- Backend desplegado en Render: https://ko-fumigaciones-api.onrender.com (`/api/health` responde `{"status":"ok"}`).
+- `docs/config.js` con ambos valores, pusheado.
+
+Falta la prueba real de punta a punta: entrar a https://sechavarria-star.github.io/ko-fumigaciones/, iniciar sesión con Google, y confirmar un pago/subir una factura para verificar que el commit a GitHub se hace bien. Se deja el resto de esta guía como referencia por si hay que recrear algo (rotar el token, agregar otro email a `ALLOWED_EMAILS`, etc.).
+
+---
+
 El frontend y el motor de matching ya están andando. Falta esto, que solo lo podés hacer vos (necesita tu login en Google Cloud y en Render):
 
 ## 1. Google OAuth Client ID
