@@ -122,7 +122,10 @@ def confirmar_pago(body: dict, authorization: str | None = Header(None)):
 async def parse_factura(file: UploadFile, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
     requerir_perfil(usuario, "admin", "supervisor")
-    texto = pdf_extract.extraer_texto(await file.read())
+    try:
+        texto = pdf_extract.extraer_texto(await file.read())
+    except RuntimeError as exc:
+        raise HTTPException(422, str(exc))
     draft = pdf_extract.parse_factura(texto)
 
     clientes, _ = github_store.get_json("data/clientes.json")
@@ -216,7 +219,10 @@ def guardar_facturas_lote(body: dict, authorization: str | None = Header(None)):
 async def parse_extracto(file: UploadFile, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
     requerir_perfil(usuario, "admin", "supervisor")
-    texto = pdf_extract.extraer_texto(await file.read())
+    try:
+        texto = pdf_extract.extraer_texto(await file.read())
+    except RuntimeError as exc:
+        raise HTTPException(422, str(exc))
 
     clientes, _ = github_store.get_json("data/clientes.json")
     facturas, _ = github_store.get_json("data/facturas.json")

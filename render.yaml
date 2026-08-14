@@ -19,3 +19,5 @@ services:
         value: sechavarria-star/ko-fumigaciones
       - key: GITHUB_BRANCH
         value: main
+      - key: GOOGLE_VISION_API_KEY
+        sync: false
