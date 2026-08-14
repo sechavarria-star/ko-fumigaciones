@@ -6,17 +6,63 @@
 <meta name="robots" content="noindex, nofollow">
 <title>KO Fumigaciones — Conciliación de pagos</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
     <h1>KO Fumigaciones</h1>
     <span class="subtitle">Conciliación de pagos</span>
+    <div class="topbar-auth" id="topbar-auth">
+      <div id="google-signin-btn"></div>
+      <div id="signed-in-as" class="signed-in-as" hidden>
+        <span id="signed-in-email"></span>
+        <button id="btn-signout" class="link-btn">Salir</button>
+      </div>
+    </div>
   </div>
 </header>
 
 <main class="wrap">
   <section class="meta" id="meta"></section>
+
+  <section class="panel admin-panel" id="admin-panel" hidden>
+    <div class="panel-head">
+      <h2>Admin</h2>
+      <div class="filters" id="admin-tabs">
+        <button class="chip active" data-tab="factura">Subir factura</button>
+        <button class="chip" data-tab="extracto">Subir extracto</button>
+        <button class="chip" data-tab="clientes">Clientes</button>
+      </div>
+    </div>
+    <div class="admin-body">
+      <div id="admin-tab-factura" class="admin-tab">
+        <p class="hint">Subí el PDF de la factura. El CUIT del cliente tiene que existir ya en la sección Clientes.</p>
+        <input type="file" id="input-factura" accept="application/pdf">
+        <div id="factura-draft"></div>
+      </div>
+      <div id="admin-tab-extracto" class="admin-tab" hidden>
+        <p class="hint">Subí el PDF del extracto bancario. Se buscan coincidencias de CUIT contra las facturas pendientes - el texto crudo del extracto no se guarda en ningún lado.</p>
+        <input type="file" id="input-extracto" accept="application/pdf">
+        <div id="extracto-draft"></div>
+      </div>
+      <div id="admin-tab-clientes" class="admin-tab" hidden>
+        <form id="form-cliente" class="inline-form">
+          <input name="cuit" placeholder="CUIT (11 dígitos)" maxlength="11" required>
+          <input name="nombre" placeholder="Nombre / razón social" required>
+          <input name="condicion_iva" placeholder="Condición IVA">
+          <input name="direccion" placeholder="Dirección">
+          <button type="submit">Guardar cliente</button>
+        </form>
+        <div class="table-wrap">
+          <table id="tabla-clientes-admin">
+            <thead><tr><th>CUIT</th><th>Nombre</th><th>Condición IVA</th></tr></thead>
+            <tbody id="tbody-clientes-admin"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section class="kpis" id="kpis"></section>
 
@@ -54,6 +100,25 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="modal-confirmar-backdrop">
+  <div class="modal">
+    <button class="modal-close" id="modal-confirmar-close">&times;</button>
+    <h3>Confirmar pago manual</h3>
+    <p class="hint" id="confirmar-pago-sub"></p>
+    <form id="form-confirmar-pago">
+      <label>Número de transacción / comprobante
+        <input name="numero_transaccion" required>
+      </label>
+      <label>Fecha de ingreso a la cuenta
+        <input name="fecha_ingreso" type="date" required>
+      </label>
+      <button type="submit">Confirmar pago</button>
+    </form>
+  </div>
+</div>
+
+<script src="config.js"></script>
 <script src="app.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>

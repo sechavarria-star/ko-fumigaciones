@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: ko-fumigaciones-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: ALLOWED_EMAILS
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://sechavarria-star.github.io
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_REPO
+        value: sechavarria-star/ko-fumigaciones
+      - key: GITHUB_BRANCH
+        value: main

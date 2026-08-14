@@ -15,6 +15,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -37,7 +38,14 @@ body {
   gap: 12px;
 }
 .topbar h1 { font-size: 1.25rem; margin: 0; font-weight: 700; letter-spacing: -0.01em; }
-.subtitle { color: var(--text-dim); font-size: 0.9rem; }
+.subtitle { color: var(--text-dim); font-size: 0.9rem; flex: 1; }
+
+.topbar-auth { display: flex; align-items: center; gap: 10px; }
+.signed-in-as { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--text-dim); }
+.link-btn {
+  background: none; border: none; color: var(--brand);
+  cursor: pointer; font-size: 0.85rem; padding: 0; text-decoration: underline;
+}
 
 .wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
 
@@ -161,7 +169,51 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .factura-row .monto { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
 .factura-row .pago-info { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
+.admin-panel { margin-bottom: 20px; }
+.admin-body { padding: 18px; }
+.admin-tab .hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px; }
+.admin-tab input[type="file"] { color: var(--text-dim); }
+
+.inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.inline-form input {
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 8px 10px; font-size: 0.85rem;
+}
+.inline-form input[name="cuit"] { width: 140px; }
+.inline-form input[name="nombre"] { flex: 1; min-width: 200px; }
+.inline-form button, .admin-tab button, #form-confirmar-pago button {
+  background: var(--brand); color: var(--bg); border: none; border-radius: 6px;
+  padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+
+.draft-card {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px; margin-top: 14px; font-size: 0.88rem;
+}
+.draft-card .draft-row { display: flex; justify-content: space-between; padding: 4px 0; gap: 12px; }
+.draft-card .draft-row .k { color: var(--text-dim); }
+.draft-card .warn-text { color: var(--warn); font-size: 0.82rem; margin-top: 8px; }
+.draft-card .match-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-top: 1px solid var(--border);
+}
+
+#form-confirmar-pago { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+#form-confirmar-pago label { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text-dim); }
+#form-confirmar-pago input {
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 9px 10px; font-size: 0.9rem;
+}
+
+.btn-confirmar-pago {
+  margin-top: 8px; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px;
+  font-size: 0.75rem; cursor: pointer;
+}
+.btn-confirmar-pago:hover { border-color: var(--brand); color: var(--brand); }
+
 @media (max-width: 640px) {
+  .topbar-inner { flex-wrap: wrap; }
   .panel-head { flex-direction: column; align-items: flex-start; gap: 10px; }
   th, td { padding: 10px 12px; }
 }
