@@ -34,9 +34,14 @@ async function llamarBackend(path, options = {}) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // El plan free de Render "duerme" el backend a los 15 min sin uso: la primera
-// request tras eso puede fallar directo (network error, "Failed to fetch")
-// en vez de simplemente tardar. Reintentamos con avisos en vez de mostrar
-// un error seco la primera vez que alguien entra después de un rato.
+// request tras eso puede fallar directo (network error, "Failed to fetch") o
+// el backend puede devolver 503 si justo se cae la verificación del token con
+// Google (fallo de red del lado del servidor). Reintentamos con aviso en vez
+// de mostrar un error seco la primera vez que alguien entra después de un rato.
+function esReintentable(err) {
+  return err instanceof TypeError || err.message.startsWith("503");
+}
+
 async function cargarConReintentos(gateError) {
   const esperas = [3000, 5000, 8000, 12000, 15000];
   for (let intento = 0; intento <= esperas.length; intento++) {
@@ -44,8 +49,7 @@ async function cargarConReintentos(gateError) {
       await cargarDatosAutenticado();
       return;
     } catch (err) {
-      const esErrorDeRed = err instanceof TypeError;
-      if (!esErrorDeRed || intento === esperas.length) throw err;
+      if (!esReintentable(err) || intento === esperas.length) throw err;
       gateError.hidden = false;
       gateError.textContent = "Despertando el servidor (plan gratis, puede tardar unos segundos)…";
       await sleep(esperas[intento]);
@@ -68,8 +72,8 @@ async function handleGoogleCredential(response) {
     gateError.hidden = false;
     gateError.textContent = err.message.startsWith("403")
       ? "Tu cuenta de Google no tiene acceso a este panel."
-      : err instanceof TypeError
-        ? "No se pudo conectar con el servidor. Probá de nuevo en un momento."
+      : esReintentable(err)
+        ? "No se pudo conectar con el servidor tras varios intentos. Probá de nuevo en un momento."
         : "No se pudo validar el login: " + err.message;
     return;
   }

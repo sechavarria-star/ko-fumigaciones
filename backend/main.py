@@ -1,13 +1,17 @@
+import logging
 import os
 from datetime import date, datetime, timezone
 
-from fastapi import FastAPI, Header, HTTPException, UploadFile
+from fastapi import FastAPI, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
 import github_store
 import pdf_extract
+
+logger = logging.getLogger("uvicorn.error")
 
 GOOGLE_CLIENT_ID = os.environ["GOOGLE_CLIENT_ID"]
 ALLOWED_EMAILS = {e.strip().lower() for e in os.environ.get("ALLOWED_EMAILS", "").split(",") if e.strip()}
@@ -21,6 +25,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Starlette solo agrega los headers de CORS a las respuestas que salen por el
+# camino normal de la app. Si algo tira una excepción no controlada (ValueError
+# aparte), la respuesta de error sale por fuera de CORSMiddleware, sin esos
+# headers - y el navegador lo reporta como "bloqueado por CORS" en vez de
+# mostrar el 500 real, que es mucho más difícil de diagnosticar. Este handler
+# evita eso: cualquier excepción no prevista sigue devolviendo CORS ok.
+@app.exception_handler(Exception)
+async def excepcion_no_controlada(request: Request, exc: Exception):
+    logger.exception("Error no controlado en %s", request.url.path)
+    return JSONResponse(status_code=500, content={"detail": f"Error interno: {exc}"})
+
+
 _google_request = google_requests.Request()
 
 
@@ -32,6 +49,11 @@ def usuario_autorizado(authorization: str | None) -> str:
         payload = id_token.verify_oauth2_token(token, _google_request, GOOGLE_CLIENT_ID)
     except ValueError:
         raise HTTPException(401, "Token de Google inválido")
+    except Exception as exc:
+        # ej. fallo de red del backend al pedirle a Google sus certificados
+        # públicos (típico en un arranque en frío) - no es que el token esté mal.
+        logger.warning("No se pudo verificar el token de Google: %s", exc)
+        raise HTTPException(503, "No se pudo validar el login con Google, probá de nuevo")
     email = payload.get("email", "").lower()
     if not payload.get("email_verified") or email not in ALLOWED_EMAILS:
         raise HTTPException(403, "Tu cuenta no tiene permiso para editar KO Fumigaciones")
