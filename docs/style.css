@@ -190,10 +190,22 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .gate-card #google-signin-btn { display: flex; justify-content: center; }
 .gate-error { color: var(--warn); font-size: 0.82rem; margin: 14px 0 0; }
 
-.admin-panel { margin-bottom: 20px; }
+.mainnav {
+  display: flex; gap: 6px; margin-bottom: 20px;
+  border-bottom: 1px solid var(--border); overflow-x: auto;
+}
+.navitem {
+  background: none; border: none; color: var(--text-dim);
+  padding: 10px 14px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+}
+.navitem:hover { color: var(--text); }
+.navitem.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+.page { margin-bottom: 20px; }
 .admin-body { padding: 18px; }
-.admin-tab .hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px; }
-.admin-tab input[type="file"] { color: var(--text-dim); }
+.admin-body .hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px; }
+.admin-body input[type="file"] { color: var(--text-dim); }
 
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .inline-form input, .inline-form select {
@@ -202,9 +214,12 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 }
 .inline-form input[name="cuit"] { width: 140px; }
 .inline-form input[name="nombre"] { flex: 1; min-width: 200px; }
-.inline-form button, .admin-tab button, #form-confirmar-pago button {
+.inline-form button, .admin-body button, #form-confirmar-pago button {
   background: var(--brand); color: var(--bg); border: none; border-radius: 6px;
   padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.inline-form button:disabled, .admin-body button:disabled {
+  background: var(--panel-2); color: var(--text-dim); cursor: not-allowed;
 }
 
 .draft-card {
@@ -218,6 +233,13 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   display: flex; justify-content: space-between; align-items: center;
   padding: 8px 0; border-top: 1px solid var(--border);
 }
+
+.lote-resumen { margin-top: 14px; }
+.lote-resumen table { font-size: 0.85rem; }
+.lote-resumen td, .lote-resumen th { padding: 8px 10px; white-space: normal; }
+.lote-resumen .archivo { color: var(--text-dim); font-size: 0.78rem; }
+.lote-acciones { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.lote-acciones .resumen-txt { color: var(--text-dim); font-size: 0.82rem; }
 
 #form-confirmar-pago { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
 #form-confirmar-pago label { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text-dim); }

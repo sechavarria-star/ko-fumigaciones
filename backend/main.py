@@ -136,20 +136,12 @@ async def parse_factura(file: UploadFile, authorization: str | None = Header(Non
     }
 
 
-@app.post("/api/facturas/guardar")
-def guardar_factura(body: dict, authorization: str | None = Header(None)):
-    usuario = usuario_autorizado(authorization)
-    requerir_perfil(usuario, "admin", "supervisor")
+def _armar_factura(body: dict) -> dict:
     for campo in ["numero", "fecha_emision", "cuit_cliente", "total"]:
         if not body.get(campo):
-            raise HTTPException(400, f"Falta el campo {campo}")
-
-    facturas, _ = github_store.get_json("data/facturas.json")
-    if any(f["numero"] == body["numero"] for f in facturas):
-        raise HTTPException(409, "Ya existe una factura con ese número")
-
+            raise ValueError(f"Falta el campo {campo}")
     dia, mes, anio = body["fecha_emision"].split("/")
-    factura = {
+    return {
         "numero": body["numero"],
         "fecha_emision": body["fecha_emision"],
         "cuit_cliente": body["cuit_cliente"],
@@ -157,11 +149,66 @@ def guardar_factura(body: dict, authorization: str | None = Header(None)):
         "total": float(body["total"]),
         "periodo": f"{anio}-{mes}",
     }
+
+
+@app.post("/api/facturas/guardar")
+def guardar_factura(body: dict, authorization: str | None = Header(None)):
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
+    try:
+        factura = _armar_factura(body)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+
+    facturas, _ = github_store.get_json("data/facturas.json")
+    if any(f["numero"] == factura["numero"] for f in facturas):
+        raise HTTPException(409, "Ya existe una factura con ese número")
+
     facturas.append(factura)
     github_store.put_json(
         "data/facturas.json", facturas, f"Agrega factura {factura['numero']} ({usuario['email']})", usuario["email"]
     )
     return factura
+
+
+# Carga masiva: el número de factura es la clave única. Un solo commit para
+# todo el lote en vez de uno por factura (más rápido y no ensucia el historial
+# con decenas de commits cuando se sube un mes entero de una).
+@app.post("/api/facturas/guardar-lote")
+def guardar_facturas_lote(body: dict, authorization: str | None = Header(None)):
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
+    entradas = body.get("facturas", [])
+    if not isinstance(entradas, list) or not entradas:
+        raise HTTPException(400, "No se mandó ninguna factura")
+
+    facturas, _ = github_store.get_json("data/facturas.json")
+    existentes = {f["numero"] for f in facturas}
+
+    guardadas = []
+    omitidas = []
+    for entrada in entradas:
+        numero = entrada.get("numero")
+        try:
+            factura = _armar_factura(entrada)
+        except ValueError as exc:
+            omitidas.append({"numero": numero, "motivo": str(exc)})
+            continue
+        if factura["numero"] in existentes:
+            omitidas.append({"numero": factura["numero"], "motivo": "ya existe (número repetido)"})
+            continue
+        facturas.append(factura)
+        existentes.add(factura["numero"])
+        guardadas.append(factura)
+
+    if guardadas:
+        github_store.put_json(
+            "data/facturas.json",
+            facturas,
+            f"Carga masiva: agrega {len(guardadas)} factura(s) ({usuario['email']})",
+            usuario["email"],
+        )
+    return {"guardadas": guardadas, "omitidas": omitidas}
 
 
 # --- 3) subir extracto (admin, supervisor; no se persiste el texto crudo) ---

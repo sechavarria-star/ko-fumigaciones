@@ -84,13 +84,11 @@ async function handleGoogleCredential(response) {
   document.getElementById("signed-in-as").hidden = false;
   document.getElementById("signed-in-email").textContent = `${payload.email} · ${etiquetaPerfil(YO.perfil)}`;
 
-  // "usuario" es de solo lectura: ni siquiera se muestra el panel de admin.
-  // "supervisor" ve el panel pero sin la pestaña de Usuarios (solo admin).
-  if (puedeEscribir()) {
-    document.getElementById("admin-panel").hidden = false;
-    document.querySelectorAll(".solo-admin").forEach((el) => (el.hidden = YO.perfil !== "admin"));
-    renderTablaClientesAdmin();
-  }
+  // "usuario" es de solo lectura: solo ve la pestaña Tablero (las demás ni
+  // aparecen en el menú). "supervisor" ve todo salvo Usuarios (solo admin).
+  document.querySelectorAll(".solo-editor").forEach((el) => (el.hidden = !puedeEscribir()));
+  document.querySelectorAll(".solo-admin").forEach((el) => (el.hidden = YO.perfil !== "admin"));
+  if (puedeEscribir()) renderTablaClientesAdmin();
 }
 
 function etiquetaPerfil(perfil) {
@@ -117,25 +115,29 @@ function initGoogleSignIn() {
 document.getElementById("btn-signout").addEventListener("click", () => {
   ID_TOKEN = null;
   SIGNED_IN_EMAIL = null;
+  YO = null;
   CLIENTES = {};
   FACTURAS = [];
   PAGOS = [];
   document.getElementById("portal").hidden = true;
   document.getElementById("gate").hidden = false;
   document.getElementById("signed-in-as").hidden = true;
-  document.getElementById("admin-panel").hidden = true;
+  document.querySelectorAll(".solo-editor, .solo-admin").forEach((el) => (el.hidden = true));
+  irAPagina("tablero");
   if (typeof google !== "undefined") google.accounts.id.disableAutoSelect();
 });
 
-// --- tabs del panel admin ---
-document.getElementById("admin-tabs").addEventListener("click", (e) => {
-  const btn = e.target.closest(".chip");
+// --- menú principal (Tablero / Facturas / Extractos / Clientes / Usuarios) ---
+function irAPagina(pagina) {
+  document.querySelectorAll(".navitem").forEach((b) => b.classList.toggle("active", b.dataset.page === pagina));
+  document.querySelectorAll(".page").forEach((p) => (p.hidden = p.id !== `page-${pagina}`));
+}
+
+document.getElementById("mainnav").addEventListener("click", (e) => {
+  const btn = e.target.closest(".navitem");
   if (!btn) return;
-  document.querySelectorAll("#admin-tabs .chip").forEach((c) => c.classList.remove("active"));
-  btn.classList.add("active");
-  document.querySelectorAll(".admin-tab").forEach((t) => (t.hidden = true));
-  document.getElementById(`admin-tab-${btn.dataset.tab}`).hidden = false;
-  if (btn.dataset.tab === "usuarios") cargarUsuarios();
+  irAPagina(btn.dataset.page);
+  if (btn.dataset.page === "usuarios") cargarUsuarios();
 });
 
 // --- 1) confirmar pago manual ---
@@ -176,51 +178,114 @@ document.getElementById("form-confirmar-pago").addEventListener("submit", async 
   }
 });
 
-// --- 2) subir factura ---
-document.getElementById("input-factura").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const draftEl = document.getElementById("factura-draft");
-  draftEl.innerHTML = `<div class="draft-card">Leyendo PDF…</div>`;
-  const fd = new FormData();
-  fd.append("file", file);
-  try {
-    const draft = await llamarBackend("/api/facturas/parse", { method: "POST", body: fd });
-    if (!draft.cuit_encontrado) {
-      draftEl.innerHTML = `
-        <div class="draft-card">
-          <div class="draft-row"><span class="k">CUIT detectado</span><span>${draft.cuit_cliente}</span></div>
-          <div class="warn-text">Ese CUIT no está en la sección Clientes. Agregalo primero ahí y volvé a subir la factura.</div>
-        </div>`;
-      return;
-    }
-    draftEl.innerHTML = `
-      <div class="draft-card">
-        <div class="draft-row"><span class="k">Factura</span><span>${draft.numero}</span></div>
-        <div class="draft-row"><span class="k">Fecha emisión</span><span>${draft.fecha_emision}</span></div>
-        <div class="draft-row"><span class="k">Cliente</span><span>${draft.nombre_cliente} (${draft.cuit_cliente})</span></div>
-        <div class="draft-row"><span class="k">Detalle</span><span>${draft.detalle}</span></div>
-        <div class="draft-row"><span class="k">Total</span><span>${fmtMoney(draft.total)}</span></div>
-        <button id="btn-guardar-factura">Guardar factura</button>
-      </div>`;
-    document.getElementById("btn-guardar-factura").addEventListener("click", async () => {
-      try {
-        const factura = await llamarBackend("/api/facturas/guardar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(draft),
-        });
-        aplicarFacturaLocal(factura);
-        draftEl.innerHTML = `<div class="draft-card">Factura ${factura.numero} guardada.</div>`;
-        e.target.value = "";
-      } catch (err) {
-        alert("No se pudo guardar la factura: " + err.message);
+// --- 2) subir facturas (una o muchas de una: carga masiva, número de
+// factura como clave única) ---
+let LOTE_FACTURAS = []; // [{archivo, draft, estado: "ok"|"error", motivo}]
+
+document.getElementById("input-facturas").addEventListener("change", async (e) => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  const draftEl = document.getElementById("facturas-draft");
+  LOTE_FACTURAS = [];
+  const numerosDelLote = new Set();
+
+  for (let i = 0; i < files.length; i++) {
+    draftEl.innerHTML = `<div class="draft-card">Leyendo PDF ${i + 1} de ${files.length}…</div>`;
+    const file = files[i];
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const draft = await llamarBackend("/api/facturas/parse", { method: "POST", body: fd });
+      let estado = "ok";
+      let motivo = "";
+      if (!draft.cuit_encontrado) {
+        estado = "error";
+        motivo = `CUIT ${draft.cuit_cliente || "?"} no está en Clientes`;
+      } else if (FACTURAS.some((f) => f.numero === draft.numero)) {
+        estado = "error";
+        motivo = "Ya existe una factura con ese número";
+      } else if (numerosDelLote.has(draft.numero)) {
+        estado = "error";
+        motivo = "Repetida dentro de este mismo lote";
       }
-    });
-  } catch (err) {
-    draftEl.innerHTML = `<div class="draft-card warn-text">No se pudo leer el PDF: ${err.message}</div>`;
+      if (estado === "ok") numerosDelLote.add(draft.numero);
+      LOTE_FACTURAS.push({ archivo: file.name, draft, estado, motivo });
+    } catch (err) {
+      LOTE_FACTURAS.push({ archivo: file.name, draft: null, estado: "error", motivo: err.message });
+    }
   }
+  renderLoteFacturas(draftEl);
 });
+
+function renderLoteFacturas(draftEl) {
+  const ok = LOTE_FACTURAS.filter((it) => it.estado === "ok").length;
+  const filas = LOTE_FACTURAS.map((it, i) => {
+    if (it.estado === "error") {
+      return `<tr>
+        <td class="archivo">${it.archivo}</td>
+        <td colspan="3" class="warn-text">${it.motivo}</td>
+        <td></td>
+      </tr>`;
+    }
+    const d = it.draft;
+    return `<tr>
+      <td><input type="checkbox" data-idx="${i}" class="chk-factura" checked></td>
+      <td>${d.numero}<div class="archivo">${it.archivo}</div></td>
+      <td>${d.nombre_cliente}</td>
+      <td class="num">${fmtMoney(d.total)}</td>
+      <td><span class="badge ok">Listo</span></td>
+    </tr>`;
+  });
+
+  draftEl.innerHTML = `
+    <div class="lote-resumen">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Factura</th><th>Cliente</th><th class="num">Total</th><th>Estado</th></tr></thead>
+          <tbody>${filas.join("")}</tbody>
+        </table>
+      </div>
+      <div class="lote-acciones">
+        <button id="btn-guardar-lote" ${ok === 0 ? "disabled" : ""}>Guardar ${ok} factura${ok === 1 ? "" : "s"}</button>
+        <span class="resumen-txt">${LOTE_FACTURAS.length - ok} con problema (no se van a guardar)</span>
+      </div>
+    </div>`;
+
+  const actualizarBotonLote = () => {
+    const n = draftEl.querySelectorAll(".chk-factura:checked").length;
+    const btn = document.getElementById("btn-guardar-lote");
+    btn.disabled = n === 0;
+    btn.textContent = `Guardar ${n} factura${n === 1 ? "" : "s"}`;
+  };
+  draftEl.querySelectorAll(".chk-factura").forEach((chk) => chk.addEventListener("change", actualizarBotonLote));
+
+  document.getElementById("btn-guardar-lote")?.addEventListener("click", async (e) => {
+    const btn = e.target;
+    const seleccionadas = [...draftEl.querySelectorAll(".chk-factura:checked")].map(
+      (chk) => LOTE_FACTURAS[Number(chk.dataset.idx)].draft
+    );
+    if (!seleccionadas.length) return;
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+    try {
+      const resultado = await llamarBackend("/api/facturas/guardar-lote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ facturas: seleccionadas }),
+      });
+      resultado.guardadas.forEach(aplicarFacturaLocal);
+      const omitidasTxt = resultado.omitidas.length
+        ? ` · ${resultado.omitidas.length} omitida(s): ${resultado.omitidas.map((o) => `${o.numero} (${o.motivo})`).join(", ")}`
+        : "";
+      draftEl.innerHTML = `<div class="draft-card">Se guardaron ${resultado.guardadas.length} factura(s).${omitidasTxt}</div>`;
+      document.getElementById("input-facturas").value = "";
+    } catch (err) {
+      alert("No se pudo guardar el lote: " + err.message);
+      btn.disabled = false;
+      btn.textContent = `Guardar ${seleccionadas.length} factura${seleccionadas.length === 1 ? "" : "s"}`;
+    }
+  });
+}
 
 // --- 3) subir extracto ---
 document.getElementById("input-extracto").addEventListener("change", async (e) => {

@@ -32,30 +32,70 @@
 </div>
 
 <main class="wrap" id="portal" hidden>
-  <section class="meta" id="meta"></section>
+  <nav class="mainnav" id="mainnav">
+    <button class="navitem active" data-page="tablero">Tablero</button>
+    <button class="navitem solo-editor" data-page="facturas" hidden>Facturas</button>
+    <button class="navitem solo-editor" data-page="extractos" hidden>Extractos</button>
+    <button class="navitem solo-editor" data-page="clientes" hidden>Clientes</button>
+    <button class="navitem solo-admin" data-page="usuarios" hidden>Usuarios</button>
+  </nav>
 
-  <section class="panel admin-panel" id="admin-panel" hidden>
-    <div class="panel-head">
-      <h2>Admin</h2>
-      <div class="filters" id="admin-tabs">
-        <button class="chip active" data-tab="factura">Subir factura</button>
-        <button class="chip" data-tab="extracto">Subir extracto</button>
-        <button class="chip" data-tab="clientes">Clientes</button>
-        <button class="chip solo-admin" data-tab="usuarios" hidden>Usuarios</button>
+  <section class="page" id="page-tablero">
+    <div class="meta" id="meta"></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Clientes</h2>
+        <div class="filters" id="filters">
+          <button class="chip active" data-filter="todos">Todos</button>
+          <button class="chip" data-filter="pendiente">Con pendiente</button>
+          <button class="chip" data-filter="pagada">Al día</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="tabla-clientes">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>CUIT</th>
+              <th class="num">Facturado</th>
+              <th class="num">Cobrado</th>
+              <th class="num">Pendiente</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-clientes"></tbody>
+        </table>
       </div>
     </div>
-    <div class="admin-body">
-      <div id="admin-tab-factura" class="admin-tab">
-        <p class="hint">Subí el PDF de la factura. El CUIT del cliente tiene que existir ya en la sección Clientes.</p>
-        <input type="file" id="input-factura" accept="application/pdf">
-        <div id="factura-draft"></div>
+  </section>
+
+  <section class="page" id="page-facturas" hidden>
+    <div class="panel">
+      <div class="panel-head"><h2>Subir facturas</h2></div>
+      <div class="admin-body">
+        <p class="hint">Subí uno o varios PDF de factura a la vez (carga masiva). El número de factura es la clave única - si ya existe, se omite. El CUIT del cliente tiene que existir ya en la sección Clientes.</p>
+        <input type="file" id="input-facturas" accept="application/pdf" multiple>
+        <div id="facturas-draft"></div>
       </div>
-      <div id="admin-tab-extracto" class="admin-tab" hidden>
+    </div>
+  </section>
+
+  <section class="page" id="page-extractos" hidden>
+    <div class="panel">
+      <div class="panel-head"><h2>Subir extracto</h2></div>
+      <div class="admin-body">
         <p class="hint">Subí el PDF del extracto bancario. Se buscan coincidencias de CUIT contra las facturas pendientes - el texto crudo del extracto no se guarda en ningún lado.</p>
         <input type="file" id="input-extracto" accept="application/pdf">
         <div id="extracto-draft"></div>
       </div>
-      <div id="admin-tab-clientes" class="admin-tab" hidden>
+    </div>
+  </section>
+
+  <section class="page" id="page-clientes" hidden>
+    <div class="panel">
+      <div class="panel-head"><h2>Clientes</h2></div>
+      <div class="admin-body">
         <form id="form-cliente" class="inline-form">
           <input name="cuit" placeholder="CUIT (11 dígitos)" maxlength="11" required>
           <input name="nombre" placeholder="Nombre / razón social" required>
@@ -70,7 +110,13 @@
           </table>
         </div>
       </div>
-      <div id="admin-tab-usuarios" class="admin-tab" hidden>
+    </div>
+  </section>
+
+  <section class="page" id="page-usuarios" hidden>
+    <div class="panel">
+      <div class="panel-head"><h2>Usuarios</h2></div>
+      <div class="admin-body">
         <p class="hint">Admin ve y edita todo. Supervisor ve todo, puede subir facturas/extractos, confirmar pagos manuales y editar clientes. Usuario solo puede ver el tablero.</p>
         <form id="form-usuario" class="inline-form">
           <input name="nombre" placeholder="Nombre" required>
@@ -90,34 +136,6 @@
           </table>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section class="kpis" id="kpis"></section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <h2>Clientes</h2>
-      <div class="filters" id="filters">
-        <button class="chip active" data-filter="todos">Todos</button>
-        <button class="chip" data-filter="pendiente">Con pendiente</button>
-        <button class="chip" data-filter="pagada">Al día</button>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table id="tabla-clientes">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>CUIT</th>
-            <th class="num">Facturado</th>
-            <th class="num">Cobrado</th>
-            <th class="num">Pendiente</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="tbody-clientes"></tbody>
-      </table>
     </div>
   </section>
 </main>
