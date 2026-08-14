@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KO Fumigaciones — Conciliación de pagos</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <h1>KO Fumigaciones</h1>
+    <span class="subtitle">Conciliación de pagos</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="meta" id="meta"></section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Clientes</h2>
+      <div class="filters" id="filters">
+        <button class="chip active" data-filter="todos">Todos</button>
+        <button class="chip" data-filter="pendiente">Con pendiente</button>
+        <button class="chip" data-filter="pagada">Al día</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="tabla-clientes">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>CUIT</th>
+            <th class="num">Facturado</th>
+            <th class="num">Cobrado</th>
+            <th class="num">Pendiente</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-clientes"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

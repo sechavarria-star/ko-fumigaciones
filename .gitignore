@@ -1,0 +1,12 @@
+# Documentos fuente (viven en Drive, no en git): facturas, extractos, planilla de clientes
+Clientes/
+Facturas/
+Resumenes de Cuenta/
+data/extractos_raw/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
