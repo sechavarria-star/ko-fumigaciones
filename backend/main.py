@@ -215,6 +215,10 @@ def guardar_facturas_lote(body: dict, authorization: str | None = Header(None)):
 
 
 # --- 3) subir extracto (admin, supervisor; no se persiste el texto crudo) ---
+# El match ya exige CUIT + monto exacto contra una factura pendiente, así que
+# no hace falta una confirmación manual por cada uno: se concilian solos en
+# un único commit. Una vez conciliada una factura dentro del lote no se
+# vuelve a tocar, aunque su CUIT/monto aparezcan de nuevo en el extracto.
 @app.post("/api/extractos/parse")
 async def parse_extracto(file: UploadFile, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
@@ -230,57 +234,41 @@ async def parse_extracto(file: UploadFile, authorization: str | None = Header(No
     cuits_ya_pagados = {p["factura_numero"] for p in pagos}
     pendientes = [f for f in facturas if f["numero"] not in cuits_ya_pagados]
 
-    matches = []
+    confirmadas = []
     for f in pendientes:
         cliente = clientes.get(f["cuit_cliente"])
         for h in pdf_extract.find_cuit_matches(texto, f["cuit_cliente"]):
             if h["tipo"] and f["total"] in h["importes_candidatos"]:
-                matches.append(
+                confirmadas.append(
                     {
                         "factura_numero": f["numero"],
                         "cuit_cliente": f["cuit_cliente"],
                         "nombre_cliente": cliente["nombre"] if cliente else f["cuit_cliente"],
                         "monto": f["total"],
+                        "origen": "auto",
+                        "extracto": file.filename,
                         "tipo_movimiento": h["tipo"],
                         "fecha_aprox": h["fecha_candidata"],
+                        "numero_transaccion": None,
+                        "confirmado_por": usuario["email"],
+                        "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
                     }
                 )
+                break  # una coincidencia por factura alcanza, no seguir buscando otras
+
+    if confirmadas:
+        pagos.extend(confirmadas)
+        github_store.put_json(
+            "data/pagos.json",
+            pagos,
+            f"Extracto {file.filename}: concilia automáticamente {len(confirmadas)} pago(s) por CUIT+monto ({usuario['email']})",
+            usuario["email"],
+        )
 
     return {
         "extracto_label": file.filename,
-        "matches": matches,
+        "confirmadas": confirmadas,
     }
-
-
-@app.post("/api/extractos/confirmar-match")
-def confirmar_match(body: dict, authorization: str | None = Header(None)):
-    usuario = usuario_autorizado(authorization)
-    requerir_perfil(usuario, "admin", "supervisor")
-    pagos, _ = github_store.get_json("data/pagos.json")
-
-    if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
-        raise HTTPException(409, "Esa factura ya tiene un pago registrado")
-
-    pago = {
-        "factura_numero": body["factura_numero"],
-        "cuit_cliente": body["cuit_cliente"],
-        "monto": body["monto"],
-        "origen": "auto",
-        "extracto": body.get("extracto_label"),
-        "tipo_movimiento": body.get("tipo_movimiento"),
-        "fecha_aprox": body.get("fecha_aprox"),
-        "numero_transaccion": None,
-        "confirmado_por": usuario["email"],
-        "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
-    }
-    pagos.append(pago)
-    github_store.put_json(
-        "data/pagos.json",
-        pagos,
-        f"Confirma pago detectado en extracto para FC {body['factura_numero']} ({usuario['email']})",
-        usuario["email"],
-    )
-    return pago
 
 
 # --- 4) clientes (admin, supervisor; CUIT como clave única) ---

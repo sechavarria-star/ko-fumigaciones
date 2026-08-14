@@ -25,8 +25,12 @@ async function llamarBackend(path, options = {}) {
     },
   });
   if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText}: ${detail}`);
+    const raw = await res.text().catch(() => "");
+    let detail = raw;
+    try {
+      detail = JSON.parse(raw).detail || raw;
+    } catch {}
+    throw new Error(`${res.status}: ${detail}`);
   }
   return res.json();
 }
@@ -61,12 +65,30 @@ function cerrarSesion(mensaje) {
   }
 }
 
+function mostrarAviso(mensaje, tipo = "error") {
+  let cont = document.getElementById("toasts");
+  if (!cont) {
+    cont = document.createElement("div");
+    cont.id = "toasts";
+    document.body.appendChild(cont);
+  }
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<div class="toast-title ${tipo}">${tipo === "ok" ? "Listo" : "No se pudo completar"}</div>${mensaje}`;
+  cont.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 200);
+  }, 6000);
+}
+
 function avisarError(err, prefijo) {
   if (esSesionInvalida(err)) {
     cerrarSesion("Tu sesión de Google expiró. Volvé a iniciar sesión.");
     return;
   }
-  alert(prefijo + err.message);
+  mostrarAviso(prefijo + err.message, "error");
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -325,43 +347,31 @@ document.getElementById("input-extracto").addEventListener("change", (e) => proc
 async function procesarArchivoExtracto(file) {
   if (!file) return;
   const draftEl = document.getElementById("extracto-draft");
-  draftEl.innerHTML = `<div class="draft-card">Leyendo PDF y buscando coincidencias…</div>`;
+  draftEl.innerHTML = `<div class="draft-card">Leyendo PDF y conciliando pagos…</div>`;
   const fd = new FormData();
   fd.append("file", file);
   try {
     const resultado = await llamarBackend("/api/extractos/parse", { method: "POST", body: fd });
-    if (!resultado.matches.length) {
-      draftEl.innerHTML = `<div class="draft-card">No se encontraron coincidencias de CUIT contra facturas pendientes en este extracto.</div>`;
+    resultado.confirmadas.forEach(aplicarPagoLocal);
+    if (!resultado.confirmadas.length) {
+      draftEl.innerHTML = `<div class="draft-card">No se encontraron coincidencias de CUIT + monto contra facturas pendientes en este extracto.</div>`;
       return;
     }
-    draftEl.innerHTML = `<div class="draft-card">${resultado.matches
-      .map(
-        (m, i) => `
+    draftEl.innerHTML = `<div class="draft-card">
+      <div class="k" style="margin-bottom:8px">Se concilió${resultado.confirmadas.length === 1 ? "" : "n"} automáticamente ${resultado.confirmadas.length} pago${resultado.confirmadas.length === 1 ? "" : "s"} (coincide CUIT + monto):</div>
+      ${resultado.confirmadas
+        .map(
+          (m) => `
         <div class="match-item">
           <div>
             <div>${m.nombre_cliente} · FC ${m.factura_numero}</div>
             <div class="k" style="font-size:0.78rem">${m.tipo_movimiento} · ${m.fecha_aprox || "sin fecha"} · ${fmtMoney(m.monto)}</div>
           </div>
-          <button data-idx="${i}" class="btn-aceptar-match">Aceptar</button>
+          <span class="badge ok">Pagada</span>
         </div>`
-      )
-      .join("")}</div>`;
-    draftEl.querySelectorAll(".btn-aceptar-match").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const m = resultado.matches[Number(btn.dataset.idx)];
-        try {
-          const pago = await llamarBackend("/api/extractos/confirmar-match", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...m, extracto_label: resultado.extracto_label }),
-          });
-          aplicarPagoLocal(pago);
-          btn.closest(".match-item").remove();
-        } catch (err) {
-          avisarError(err, "No se pudo confirmar: ");
-        }
-      });
-    });
+        )
+        .join("")}
+    </div>`;
   } catch (err) {
     if (esSesionInvalida(err)) {
       cerrarSesion("Tu sesión de Google expiró. Volvé a iniciar sesión.");
@@ -377,7 +387,7 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
   const fd = new FormData(e.target);
   const cuit = fd.get("cuit").trim();
   if (!/^\d{11}$/.test(cuit)) {
-    alert("El CUIT tiene que tener 11 dígitos, sin guiones.");
+    mostrarAviso("El CUIT tiene que tener 11 dígitos, sin guiones.", "error");
     return;
   }
   const info = {
@@ -437,7 +447,7 @@ document.getElementById("form-usuario").addEventListener("submit", async (e) => 
   const fd = new FormData(e.target);
   const email = fd.get("email").trim().toLowerCase();
   if (!email.includes("@")) {
-    alert("Ingresá un email válido.");
+    mostrarAviso("Ingresá un email válido.", "error");
     return;
   }
   try {

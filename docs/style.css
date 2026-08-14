@@ -10,6 +10,8 @@
   --ok-bg: rgba(52, 211, 153, 0.12);
   --warn: #f59e0b;
   --warn-bg: rgba(245, 158, 11, 0.14);
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, 0.14);
   --radius: 10px;
   font-size: 16px;
 }
@@ -264,6 +266,23 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   font-size: 0.75rem; cursor: pointer;
 }
 .btn-confirmar-pago:hover { border-color: var(--brand); color: var(--brand); }
+
+#toasts {
+  position: fixed; top: 18px; right: 18px; z-index: 200;
+  display: flex; flex-direction: column; gap: 10px;
+  max-width: min(360px, calc(100vw - 36px));
+}
+.toast {
+  background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--danger);
+  border-radius: var(--radius); padding: 12px 14px; font-size: 0.85rem; color: var(--text);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  opacity: 0; transform: translateY(-8px); transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast.toast-ok { border-left-color: var(--ok); }
+.toast .toast-title { font-weight: 600; margin-bottom: 2px; }
+.toast .toast-title.error { color: var(--danger); }
+.toast .toast-title.ok { color: var(--ok); }
 
 @media (max-width: 640px) {
   .topbar-inner { flex-wrap: wrap; }
