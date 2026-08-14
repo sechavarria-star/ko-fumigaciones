@@ -75,7 +75,10 @@
       <div class="panel-head"><h2>Subir facturas</h2></div>
       <div class="admin-body">
         <p class="hint">Subí uno o varios PDF de factura a la vez (carga masiva). El número de factura es la clave única - si ya existe, se omite. El CUIT del cliente tiene que existir ya en la sección Clientes.</p>
-        <input type="file" id="input-facturas" accept="application/pdf" multiple>
+        <label class="dropzone" id="dropzone-facturas" for="input-facturas">
+          <span>Arrastrá los PDF acá, o hacé clic para elegirlos</span>
+          <input type="file" id="input-facturas" accept="application/pdf" multiple hidden>
+        </label>
         <div id="facturas-draft"></div>
       </div>
     </div>
@@ -86,7 +89,10 @@
       <div class="panel-head"><h2>Subir extracto</h2></div>
       <div class="admin-body">
         <p class="hint">Subí el PDF del extracto bancario. Se buscan coincidencias de CUIT contra las facturas pendientes - el texto crudo del extracto no se guarda en ningún lado.</p>
-        <input type="file" id="input-extracto" accept="application/pdf">
+        <label class="dropzone" id="dropzone-extracto" for="input-extracto">
+          <span>Arrastrá el PDF acá, o hacé clic para elegirlo</span>
+          <input type="file" id="input-extracto" accept="application/pdf" hidden>
+        </label>
         <div id="extracto-draft"></div>
       </div>
     </div>

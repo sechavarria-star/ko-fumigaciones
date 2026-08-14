@@ -31,6 +31,44 @@ async function llamarBackend(path, options = {}) {
   return res.json();
 }
 
+// El token de Google dura ~1 hora. Si una acción (o el medio de un lote
+// grande) se topa con un 401, no es que "esa factura esté mal": es que la
+// sesión venció. Los que llaman en loop (carga masiva) tienen que frenar
+// apenas ven esto, en vez de reportar 401 archivo por archivo.
+function esSesionInvalida(err) {
+  return err.message.startsWith("401");
+}
+
+function cerrarSesion(mensaje) {
+  ID_TOKEN = null;
+  SIGNED_IN_EMAIL = null;
+  YO = null;
+  CLIENTES = {};
+  FACTURAS = [];
+  PAGOS = [];
+  document.getElementById("portal").hidden = true;
+  document.getElementById("gate").hidden = false;
+  document.getElementById("signed-in-as").hidden = true;
+  document.querySelectorAll(".solo-editor, .solo-admin").forEach((el) => (el.hidden = true));
+  irAPagina("tablero");
+  if (typeof google !== "undefined") google.accounts.id.disableAutoSelect();
+  const gateError = document.getElementById("gate-error");
+  if (mensaje) {
+    gateError.hidden = false;
+    gateError.textContent = mensaje;
+  } else {
+    gateError.hidden = true;
+  }
+}
+
+function avisarError(err, prefijo) {
+  if (esSesionInvalida(err)) {
+    cerrarSesion("Tu sesión de Google expiró. Volvé a iniciar sesión.");
+    return;
+  }
+  alert(prefijo + err.message);
+}
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // El plan free de Render "duerme" el backend a los 15 min sin uso: la primera
@@ -112,20 +150,7 @@ function initGoogleSignIn() {
   });
 }
 
-document.getElementById("btn-signout").addEventListener("click", () => {
-  ID_TOKEN = null;
-  SIGNED_IN_EMAIL = null;
-  YO = null;
-  CLIENTES = {};
-  FACTURAS = [];
-  PAGOS = [];
-  document.getElementById("portal").hidden = true;
-  document.getElementById("gate").hidden = false;
-  document.getElementById("signed-in-as").hidden = true;
-  document.querySelectorAll(".solo-editor, .solo-admin").forEach((el) => (el.hidden = true));
-  irAPagina("tablero");
-  if (typeof google !== "undefined") google.accounts.id.disableAutoSelect();
-});
+document.getElementById("btn-signout").addEventListener("click", () => cerrarSesion());
 
 // --- menú principal (Tablero / Facturas / Extractos / Clientes / Usuarios) ---
 function irAPagina(pagina) {
@@ -174,7 +199,7 @@ document.getElementById("form-confirmar-pago").addEventListener("submit", async 
     document.getElementById("modal-backdrop").classList.remove("open");
     e.target.reset();
   } catch (err) {
-    alert("No se pudo confirmar el pago: " + err.message);
+    avisarError(err, "No se pudo confirmar el pago: ");
   }
 });
 
@@ -182,8 +207,9 @@ document.getElementById("form-confirmar-pago").addEventListener("submit", async 
 // factura como clave única) ---
 let LOTE_FACTURAS = []; // [{archivo, draft, estado: "ok"|"error", motivo}]
 
-document.getElementById("input-facturas").addEventListener("change", async (e) => {
-  const files = [...e.target.files];
+document.getElementById("input-facturas").addEventListener("change", (e) => procesarArchivosFacturas([...e.target.files]));
+
+async function procesarArchivosFacturas(files) {
   if (!files.length) return;
   const draftEl = document.getElementById("facturas-draft");
   LOTE_FACTURAS = [];
@@ -211,11 +237,17 @@ document.getElementById("input-facturas").addEventListener("change", async (e) =
       if (estado === "ok") numerosDelLote.add(draft.numero);
       LOTE_FACTURAS.push({ archivo: file.name, draft, estado, motivo });
     } catch (err) {
+      if (esSesionInvalida(err)) {
+        cerrarSesion(
+          `Tu sesión de Google expiró mientras subías las facturas (se llegó a procesar ${i} de ${files.length}). Volvé a iniciar sesión y subí el resto.`
+        );
+        return;
+      }
       LOTE_FACTURAS.push({ archivo: file.name, draft: null, estado: "error", motivo: err.message });
     }
   }
   renderLoteFacturas(draftEl);
-});
+}
 
 function renderLoteFacturas(draftEl) {
   const ok = LOTE_FACTURAS.filter((it) => it.estado === "ok").length;
@@ -280,7 +312,7 @@ function renderLoteFacturas(draftEl) {
       draftEl.innerHTML = `<div class="draft-card">Se guardaron ${resultado.guardadas.length} factura(s).${omitidasTxt}</div>`;
       document.getElementById("input-facturas").value = "";
     } catch (err) {
-      alert("No se pudo guardar el lote: " + err.message);
+      avisarError(err, "No se pudo guardar el lote: ");
       btn.disabled = false;
       btn.textContent = `Guardar ${seleccionadas.length} factura${seleccionadas.length === 1 ? "" : "s"}`;
     }
@@ -288,8 +320,9 @@ function renderLoteFacturas(draftEl) {
 }
 
 // --- 3) subir extracto ---
-document.getElementById("input-extracto").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
+document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivoExtracto(e.target.files[0]));
+
+async function procesarArchivoExtracto(file) {
   if (!file) return;
   const draftEl = document.getElementById("extracto-draft");
   draftEl.innerHTML = `<div class="draft-card">Leyendo PDF y buscando coincidencias…</div>`;
@@ -325,14 +358,18 @@ document.getElementById("input-extracto").addEventListener("change", async (e) =
           aplicarPagoLocal(pago);
           btn.closest(".match-item").remove();
         } catch (err) {
-          alert("No se pudo confirmar: " + err.message);
+          avisarError(err, "No se pudo confirmar: ");
         }
       });
     });
   } catch (err) {
+    if (esSesionInvalida(err)) {
+      cerrarSesion("Tu sesión de Google expiró. Volvé a iniciar sesión.");
+      return;
+    }
     draftEl.innerHTML = `<div class="draft-card warn-text">No se pudo leer el PDF: ${err.message}</div>`;
   }
-});
+}
 
 // --- 4) clientes ---
 document.getElementById("form-cliente").addEventListener("submit", async (e) => {
@@ -359,7 +396,7 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     renderTablaClientesAdmin();
     e.target.reset();
   } catch (err) {
-    alert("No se pudo guardar el cliente: " + err.message);
+    avisarError(err, "No se pudo guardar el cliente: ");
   }
 });
 
@@ -417,8 +454,30 @@ document.getElementById("form-usuario").addEventListener("submit", async (e) => 
     e.target.reset();
     cargarUsuarios();
   } catch (err) {
-    alert("No se pudo guardar el usuario: " + err.message);
+    avisarError(err, "No se pudo guardar el usuario: ");
   }
 });
+
+// --- arrastrar y soltar en las zonas de carga (además del clic normal, que
+// ya funciona solo por la asociación <label for>/<input>) ---
+function wireDropzone(zoneId, onFiles) {
+  const zona = document.getElementById(zoneId);
+  ["dragenter", "dragover"].forEach((evt) =>
+    zona.addEventListener(evt, (e) => {
+      e.preventDefault();
+      zona.classList.add("dragover");
+    })
+  );
+  ["dragleave", "dragend"].forEach((evt) => zona.addEventListener(evt, () => zona.classList.remove("dragover")));
+  zona.addEventListener("drop", (e) => {
+    e.preventDefault();
+    zona.classList.remove("dragover");
+    const archivos = [...e.dataTransfer.files].filter((f) => f.type === "application/pdf");
+    if (archivos.length) onFiles(archivos);
+  });
+}
+
+wireDropzone("dropzone-facturas", procesarArchivosFacturas);
+wireDropzone("dropzone-extracto", (archivos) => procesarArchivoExtracto(archivos[0]));
 
 window.addEventListener("load", initGoogleSignIn);

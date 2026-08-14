@@ -207,6 +207,16 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .admin-body .hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px; }
 .admin-body input[type="file"] { color: var(--text-dim); }
 
+.dropzone {
+  display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--border); border-radius: var(--radius);
+  padding: 28px 16px; text-align: center;
+  color: var(--text-dim); font-size: 0.88rem;
+  cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.dropzone:hover { border-color: var(--text-dim); color: var(--text); }
+.dropzone.dragover { border-color: var(--brand); background: var(--ok-bg); color: var(--brand); }
+
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .inline-form input, .inline-form select {
   background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
