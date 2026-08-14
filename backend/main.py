@@ -215,10 +215,11 @@ def guardar_facturas_lote(body: dict, authorization: str | None = Header(None)):
 
 
 # --- 3) subir extracto (admin, supervisor; no se persiste el texto crudo) ---
-# El match ya exige CUIT + monto exacto contra una factura pendiente, así que
-# no hace falta una confirmación manual por cada uno: se concilian solos en
-# un único commit. Una vez conciliada una factura dentro del lote no se
-# vuelve a tocar, aunque su CUIT/monto aparezcan de nuevo en el extracto.
+# Subir un extracto solo calcula candidatos (CUIT + monto exacto contra una
+# factura pendiente) y no escribe nada todavía - el usuario puede subir
+# varios extractos y recién mandarlos a /consolidar cuando quiera, desde el
+# botón "Consolidación" del frontend, que junta los candidatos de todos los
+# extractos subidos en esa sesión.
 @app.post("/api/extractos/parse")
 async def parse_extracto(file: UploadFile, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
@@ -234,41 +235,78 @@ async def parse_extracto(file: UploadFile, authorization: str | None = Header(No
     cuits_ya_pagados = {p["factura_numero"] for p in pagos}
     pendientes = [f for f in facturas if f["numero"] not in cuits_ya_pagados]
 
-    confirmadas = []
+    matches = []
     for f in pendientes:
         cliente = clientes.get(f["cuit_cliente"])
         for h in pdf_extract.find_cuit_matches(texto, f["cuit_cliente"]):
             if h["tipo"] and f["total"] in h["importes_candidatos"]:
-                confirmadas.append(
+                matches.append(
                     {
                         "factura_numero": f["numero"],
                         "cuit_cliente": f["cuit_cliente"],
                         "nombre_cliente": cliente["nombre"] if cliente else f["cuit_cliente"],
                         "monto": f["total"],
-                        "origen": "auto",
-                        "extracto": file.filename,
                         "tipo_movimiento": h["tipo"],
                         "fecha_aprox": h["fecha_candidata"],
-                        "numero_transaccion": None,
-                        "confirmado_por": usuario["email"],
-                        "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
                     }
                 )
                 break  # una coincidencia por factura alcanza, no seguir buscando otras
 
-    if confirmadas:
-        pagos.extend(confirmadas)
+    return {
+        "extracto_label": file.filename,
+        "matches": matches,
+    }
+
+
+# El usuario revisa la cola acumulada de candidatos (de uno o varios
+# extractos) en el frontend y recién ahí dispara esto: un solo commit para
+# todos los pagos seleccionados. Vuelve a chequear contra pagos.json por si
+# alguna factura ya se pagó por otro camino mientras la cola esperaba.
+@app.post("/api/extractos/consolidar")
+def consolidar_extractos(body: dict, authorization: str | None = Header(None)):
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
+    matches = body.get("matches", [])
+    if not matches:
+        raise HTTPException(400, "No hay pagos para consolidar")
+
+    pagos, _ = github_store.get_json("data/pagos.json")
+    ya_pagadas = {p["factura_numero"] for p in pagos}
+
+    confirmados = []
+    omitidos = []
+    vistos = set()
+    for m in matches:
+        numero = m.get("factura_numero")
+        if numero in ya_pagadas or numero in vistos:
+            omitidos.append(numero)
+            continue
+        vistos.add(numero)
+        confirmados.append(
+            {
+                "factura_numero": numero,
+                "cuit_cliente": m["cuit_cliente"],
+                "monto": m["monto"],
+                "origen": "auto",
+                "extracto": m.get("extracto_label"),
+                "tipo_movimiento": m.get("tipo_movimiento"),
+                "fecha_aprox": m.get("fecha_aprox"),
+                "numero_transaccion": None,
+                "confirmado_por": usuario["email"],
+                "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
+            }
+        )
+
+    if confirmados:
+        pagos.extend(confirmados)
         github_store.put_json(
             "data/pagos.json",
             pagos,
-            f"Extracto {file.filename}: concilia automáticamente {len(confirmadas)} pago(s) por CUIT+monto ({usuario['email']})",
+            f"Consolidación manual: concilia {len(confirmados)} pago(s) por CUIT+monto ({usuario['email']})",
             usuario["email"],
         )
 
-    return {
-        "extracto_label": file.filename,
-        "confirmadas": confirmadas,
-    }
+    return {"confirmados": confirmados, "omitidos": omitidos}
 
 
 # --- 4) clientes (admin, supervisor; CUIT como clave única) ---

@@ -88,12 +88,19 @@
     <div class="panel">
       <div class="panel-head"><h2>Subir extracto</h2></div>
       <div class="admin-body">
-        <p class="hint">Subí el PDF del extracto bancario. Se buscan coincidencias de CUIT contra las facturas pendientes - el texto crudo del extracto no se guarda en ningún lado.</p>
+        <p class="hint">Subí uno o más PDFs de extracto bancario. Se buscan coincidencias de CUIT + monto contra las facturas pendientes y quedan en la cola de abajo - el texto crudo del extracto no se guarda en ningún lado, y nada se concilia hasta que apretás "Consolidar".</p>
         <label class="dropzone" id="dropzone-extracto" for="input-extracto">
-          <span>Arrastrá el PDF acá, o hacé clic para elegirlo</span>
-          <input type="file" id="input-extracto" accept="application/pdf" hidden>
+          <span>Arrastrá uno o más PDFs acá, o hacé clic para elegirlos</span>
+          <input type="file" id="input-extracto" accept="application/pdf" multiple hidden>
         </label>
         <div id="extracto-draft"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Consolidación pendiente</h2></div>
+      <div class="admin-body">
+        <div id="cola-consolidacion"><p class="hint">Todavía no hay coincidencias en la cola.</p></div>
       </div>
     </div>
   </section>

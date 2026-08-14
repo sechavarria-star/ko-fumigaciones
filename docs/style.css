@@ -205,6 +205,7 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .navitem.active { color: var(--brand); border-bottom-color: var(--brand); }
 
 .page { margin-bottom: 20px; }
+.page .panel + .panel { margin-top: 16px; }
 .admin-body { padding: 18px; }
 .admin-body .hint { color: var(--text-dim); font-size: 0.85rem; margin: 0 0 12px; }
 .admin-body input[type="file"] { color: var(--text-dim); }

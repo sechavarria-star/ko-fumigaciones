@@ -50,6 +50,7 @@ function cerrarSesion(mensaje) {
   CLIENTES = {};
   FACTURAS = [];
   PAGOS = [];
+  COLA_CONSOLIDACION = [];
   document.getElementById("portal").hidden = true;
   document.getElementById("gate").hidden = false;
   document.getElementById("signed-in-as").hidden = true;
@@ -231,14 +232,22 @@ let LOTE_FACTURAS = []; // [{archivo, draft, estado: "ok"|"error", motivo}]
 
 document.getElementById("input-facturas").addEventListener("change", (e) => procesarArchivosFacturas([...e.target.files]));
 
+// Se procesan varios PDFs a la vez (en vez de uno por uno) para no esperar
+// un viaje de red + OCR completo por archivo antes de arrancar el próximo -
+// con facturas escaneadas eso hacía que un lote de 48 tardara varios
+// minutos. CONCURRENCIA=5 para no saturar el free tier de Render.
+const CONCURRENCIA_FACTURAS = 5;
+
 async function procesarArchivosFacturas(files) {
   if (!files.length) return;
   const draftEl = document.getElementById("facturas-draft");
-  LOTE_FACTURAS = [];
+  LOTE_FACTURAS = new Array(files.length);
   const numerosDelLote = new Set();
+  let procesados = 0;
+  let sesionExpirada = false;
 
-  for (let i = 0; i < files.length; i++) {
-    draftEl.innerHTML = `<div class="draft-card">Leyendo PDF ${i + 1} de ${files.length}…</div>`;
+  async function procesarUno(i) {
+    if (sesionExpirada) return;
     const file = files[i];
     const fd = new FormData();
     fd.append("file", file);
@@ -257,17 +266,34 @@ async function procesarArchivosFacturas(files) {
         motivo = "Repetida dentro de este mismo lote";
       }
       if (estado === "ok") numerosDelLote.add(draft.numero);
-      LOTE_FACTURAS.push({ archivo: file.name, draft, estado, motivo });
+      LOTE_FACTURAS[i] = { archivo: file.name, draft, estado, motivo };
     } catch (err) {
       if (esSesionInvalida(err)) {
-        cerrarSesion(
-          `Tu sesión de Google expiró mientras subías las facturas (se llegó a procesar ${i} de ${files.length}). Volvé a iniciar sesión y subí el resto.`
-        );
+        sesionExpirada = true;
         return;
       }
-      LOTE_FACTURAS.push({ archivo: file.name, draft: null, estado: "error", motivo: err.message });
+      LOTE_FACTURAS[i] = { archivo: file.name, draft: null, estado: "error", motivo: err.message };
+    }
+    procesados++;
+    draftEl.innerHTML = `<div class="draft-card">Leyendo PDFs… ${procesados} de ${files.length}</div>`;
+  }
+
+  let siguiente = 0;
+  async function worker() {
+    while (siguiente < files.length && !sesionExpirada) {
+      const i = siguiente++;
+      await procesarUno(i);
     }
   }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCIA_FACTURAS, files.length) }, worker));
+
+  if (sesionExpirada) {
+    cerrarSesion(
+      `Tu sesión de Google expiró mientras subías las facturas (se llegó a procesar ${procesados} de ${files.length}). Volvé a iniciar sesión y subí el resto.`
+    );
+    return;
+  }
+  LOTE_FACTURAS = LOTE_FACTURAS.filter(Boolean);
   renderLoteFacturas(draftEl);
 }
 
@@ -342,43 +368,121 @@ function renderLoteFacturas(draftEl) {
 }
 
 // --- 3) subir extracto ---
-document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivoExtracto(e.target.files[0]));
+// Subir un extracto solo agrega candidatos (CUIT + monto ya coinciden) a
+// COLA_CONSOLIDACION - no escribe nada. Se pueden subir varios extractos
+// seguidos, la cola se va acumulando (sin duplicar factura), y recién se
+// concilia de verdad cuando el usuario aprieta "Consolidar".
+let COLA_CONSOLIDACION = [];
 
-async function procesarArchivoExtracto(file) {
-  if (!file) return;
+document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivosExtracto([...e.target.files]));
+
+async function procesarArchivosExtracto(files) {
+  if (!files.length) return;
   const draftEl = document.getElementById("extracto-draft");
-  draftEl.innerHTML = `<div class="draft-card">Leyendo PDF y conciliando pagos…</div>`;
-  const fd = new FormData();
-  fd.append("file", file);
-  try {
-    const resultado = await llamarBackend("/api/extractos/parse", { method: "POST", body: fd });
-    resultado.confirmadas.forEach(aplicarPagoLocal);
-    if (!resultado.confirmadas.length) {
-      draftEl.innerHTML = `<div class="draft-card">No se encontraron coincidencias de CUIT + monto contra facturas pendientes en este extracto.</div>`;
-      return;
+
+  for (let i = 0; i < files.length; i++) {
+    draftEl.innerHTML = `<div class="draft-card">Leyendo extracto ${i + 1} de ${files.length}…</div>`;
+    const file = files[i];
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const resultado = await llamarBackend("/api/extractos/parse", { method: "POST", body: fd });
+      let agregadas = 0;
+      resultado.matches.forEach((m) => {
+        if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
+        COLA_CONSOLIDACION.push({ ...m, extracto_label: resultado.extracto_label });
+        agregadas++;
+      });
+      const repetidas = resultado.matches.length - agregadas;
+      draftEl.innerHTML = `<div class="draft-card">${file.name}: ${agregadas} coincidencia${agregadas === 1 ? "" : "s"} nueva${agregadas === 1 ? "" : "s"} agregada${agregadas === 1 ? "" : "s"} a la cola.${repetidas ? ` (${repetidas} ya estaba${repetidas === 1 ? "" : "n"} en la cola)` : ""}</div>`;
+    } catch (err) {
+      if (esSesionInvalida(err)) {
+        cerrarSesion(`Tu sesión de Google expiró mientras subías extractos (se llegó a procesar ${i} de ${files.length}).`);
+        renderColaConsolidacion();
+        return;
+      }
+      draftEl.innerHTML = `<div class="draft-card warn-text">${file.name}: no se pudo leer - ${err.message}</div>`;
     }
-    draftEl.innerHTML = `<div class="draft-card">
-      <div class="k" style="margin-bottom:8px">Se concilió${resultado.confirmadas.length === 1 ? "" : "n"} automáticamente ${resultado.confirmadas.length} pago${resultado.confirmadas.length === 1 ? "" : "s"} (coincide CUIT + monto):</div>
-      ${resultado.confirmadas
-        .map(
-          (m) => `
-        <div class="match-item">
-          <div>
-            <div>${m.nombre_cliente} · FC ${m.factura_numero}</div>
-            <div class="k" style="font-size:0.78rem">${m.tipo_movimiento} · ${m.fecha_aprox || "sin fecha"} · ${fmtMoney(m.monto)}</div>
-          </div>
-          <span class="badge ok">Pagada</span>
-        </div>`
-        )
-        .join("")}
-    </div>`;
-  } catch (err) {
-    if (esSesionInvalida(err)) {
-      cerrarSesion("Tu sesión de Google expiró. Volvé a iniciar sesión.");
-      return;
-    }
-    draftEl.innerHTML = `<div class="draft-card warn-text">No se pudo leer el PDF: ${err.message}</div>`;
   }
+  document.getElementById("input-extracto").value = "";
+  renderColaConsolidacion();
+}
+
+function renderColaConsolidacion() {
+  const el = document.getElementById("cola-consolidacion");
+  if (!COLA_CONSOLIDACION.length) {
+    el.innerHTML = `<p class="hint">Todavía no hay coincidencias en la cola.</p>`;
+    return;
+  }
+
+  const filas = COLA_CONSOLIDACION.map(
+    (m, i) => `
+    <tr>
+      <td><input type="checkbox" data-idx="${i}" class="chk-consolidar" checked></td>
+      <td>${m.nombre_cliente}<div class="archivo">FC ${m.factura_numero}</div></td>
+      <td class="num">${fmtMoney(m.monto)}</td>
+      <td>${m.tipo_movimiento}</td>
+      <td>${m.fecha_aprox || "—"}</td>
+      <td class="archivo">${m.extracto_label}</td>
+    </tr>`
+  );
+
+  el.innerHTML = `
+    <div class="lote-resumen">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Cliente / Factura</th><th class="num">Monto</th><th>Movimiento</th><th>Fecha</th><th>Extracto</th></tr></thead>
+          <tbody>${filas.join("")}</tbody>
+        </table>
+      </div>
+      <div class="lote-acciones">
+        <button id="btn-consolidar">Consolidar ${COLA_CONSOLIDACION.length} pago${COLA_CONSOLIDACION.length === 1 ? "" : "s"}</button>
+        <button id="btn-vaciar-cola" type="button" class="btn-confirmar-pago">Vaciar cola</button>
+      </div>
+    </div>`;
+
+  const actualizarBotonConsolidar = () => {
+    const n = el.querySelectorAll(".chk-consolidar:checked").length;
+    const btn = document.getElementById("btn-consolidar");
+    btn.disabled = n === 0;
+    btn.textContent = `Consolidar ${n} pago${n === 1 ? "" : "s"}`;
+  };
+  el.querySelectorAll(".chk-consolidar").forEach((chk) => chk.addEventListener("change", actualizarBotonConsolidar));
+
+  document.getElementById("btn-vaciar-cola").addEventListener("click", () => {
+    COLA_CONSOLIDACION = [];
+    renderColaConsolidacion();
+  });
+
+  document.getElementById("btn-consolidar").addEventListener("click", async (e) => {
+    const btn = e.target;
+    const seleccionados = [...el.querySelectorAll(".chk-consolidar:checked")].map(
+      (chk) => COLA_CONSOLIDACION[Number(chk.dataset.idx)]
+    );
+    if (!seleccionados.length) return;
+    btn.disabled = true;
+    btn.textContent = "Consolidando…";
+    try {
+      const resultado = await llamarBackend("/api/extractos/consolidar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matches: seleccionados }),
+      });
+      resultado.confirmados.forEach(aplicarPagoLocal);
+      const yaResueltas = new Set([...resultado.confirmados.map((p) => p.factura_numero), ...resultado.omitidos]);
+      COLA_CONSOLIDACION = COLA_CONSOLIDACION.filter((m) => !yaResueltas.has(m.factura_numero));
+      mostrarAviso(
+        `Se consolidaron ${resultado.confirmados.length} pago${resultado.confirmados.length === 1 ? "" : "s"}.` +
+          (resultado.omitidos.length ? ` ${resultado.omitidos.length} ya tenían pago registrado y se omitieron.` : ""),
+        "ok"
+      );
+      renderColaConsolidacion();
+    } catch (err) {
+      avisarError(err, "No se pudo consolidar: ");
+      btn.disabled = false;
+      actualizarBotonConsolidar();
+    }
+  });
 }
 
 // --- 4) clientes ---
@@ -488,6 +592,6 @@ function wireDropzone(zoneId, onFiles) {
 }
 
 wireDropzone("dropzone-facturas", procesarArchivosFacturas);
-wireDropzone("dropzone-extracto", (archivos) => procesarArchivoExtracto(archivos[0]));
+wireDropzone("dropzone-extracto", procesarArchivosExtracto);
 
 window.addEventListener("load", initGoogleSignIn);
