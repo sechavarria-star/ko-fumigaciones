@@ -154,5 +154,17 @@
     "numero_transaccion": null,
     "confirmado_por": "s.echavarria@giwa-ia.com",
     "fecha_confirmacion": "2026-08-14"
+  },
+  {
+    "factura_numero": "00004-00006960",
+    "cuit_cliente": "33634128579",
+    "monto": 79000,
+    "origen": "auto",
+    "extracto": "RCP - Santander Resumen - Abril 2026.pdf",
+    "tipo_movimiento": "Pago a proveedores recibido",
+    "fecha_aprox": "27/04/26",
+    "numero_transaccion": null,
+    "confirmado_por": "s.echavarria@giwa-ia.com",
+    "fecha_confirmacion": "2026-08-14"
   }
 ]
