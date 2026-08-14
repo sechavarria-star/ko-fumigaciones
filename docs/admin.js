@@ -51,6 +51,7 @@ function cerrarSesion(mensaje) {
   FACTURAS = [];
   PAGOS = [];
   COLA_CONSOLIDACION = [];
+  ULTIMOS_EXTRACTOS = [];
   document.getElementById("portal").hidden = true;
   document.getElementById("gate").hidden = false;
   document.getElementById("signed-in-as").hidden = true;
@@ -372,13 +373,23 @@ function renderLoteFacturas(draftEl) {
 // COLA_CONSOLIDACION - no escribe nada. Se pueden subir varios extractos
 // seguidos, la cola se va acumulando (sin duplicar factura), y recién se
 // concilia de verdad cuando el usuario aprieta "Consolidar".
+// Como el texto crudo del extracto nunca se persiste, si el usuario carga
+// una factura DESPUÉS de haber subido el extracto, esa factura no iba a
+// tener forma de aparecer en la cola. Para eso se guardan acá (en memoria
+// del navegador, no en ningún lado más) los PDFs de extracto ya subidos en
+// esta sesión, así se pueden volver a mandar a /parse con un solo clic.
 let COLA_CONSOLIDACION = [];
+let ULTIMOS_EXTRACTOS = []; // File[] ya subidos en esta sesión, para reintentar
 
 document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivosExtracto([...e.target.files]));
 
 async function procesarArchivosExtracto(files) {
   if (!files.length) return;
   const draftEl = document.getElementById("extracto-draft");
+
+  files.forEach((f) => {
+    if (!ULTIMOS_EXTRACTOS.some((x) => x.name === f.name && x.size === f.size)) ULTIMOS_EXTRACTOS.push(f);
+  });
 
   for (let i = 0; i < files.length; i++) {
     draftEl.innerHTML = `<div class="draft-card">Leyendo extracto ${i + 1} de ${files.length}…</div>`;
@@ -410,8 +421,15 @@ async function procesarArchivosExtracto(files) {
 
 function renderColaConsolidacion() {
   const el = document.getElementById("cola-consolidacion");
+  const reintentar = ULTIMOS_EXTRACTOS.length
+    ? `<button id="btn-reintentar-extractos" type="button" class="btn-confirmar-pago">Volver a buscar en los ${ULTIMOS_EXTRACTOS.length} extracto${ULTIMOS_EXTRACTOS.length === 1 ? "" : "s"} ya subido${ULTIMOS_EXTRACTOS.length === 1 ? "" : "s"}</button>`
+    : "";
+
   if (!COLA_CONSOLIDACION.length) {
-    el.innerHTML = `<p class="hint">Todavía no hay coincidencias en la cola.</p>`;
+    el.innerHTML = `<p class="hint">Todavía no hay coincidencias en la cola.${
+      ULTIMOS_EXTRACTOS.length ? " Si cargaste una factura nueva después del extracto, probá de nuevo:" : ""
+    }</p>${reintentar}`;
+    document.getElementById("btn-reintentar-extractos")?.addEventListener("click", () => procesarArchivosExtracto(ULTIMOS_EXTRACTOS));
     return;
   }
 
@@ -438,8 +456,11 @@ function renderColaConsolidacion() {
       <div class="lote-acciones">
         <button id="btn-consolidar">Consolidar ${COLA_CONSOLIDACION.length} pago${COLA_CONSOLIDACION.length === 1 ? "" : "s"}</button>
         <button id="btn-vaciar-cola" type="button" class="btn-confirmar-pago">Vaciar cola</button>
+        ${reintentar}
       </div>
     </div>`;
+
+  document.getElementById("btn-reintentar-extractos")?.addEventListener("click", () => procesarArchivosExtracto(ULTIMOS_EXTRACTOS));
 
   const actualizarBotonConsolidar = () => {
     const n = el.querySelectorAll(".chk-consolidar:checked").length;
