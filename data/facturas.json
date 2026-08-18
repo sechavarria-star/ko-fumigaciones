@@ -526,5 +526,237 @@
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 60000.0,
     "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00007000",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30715001140",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 45500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00007001",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30681444307",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 38000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00007003",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30714266248",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 35500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00007004",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30550343955",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 145000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00007005",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30714912395",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 45500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00007006",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30626114772",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 198000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006975",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30709878545",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 64000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006976",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30717349292",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 52000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006977",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30520660387",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 81000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006978",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30717300137",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 120000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006979",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30609846298",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 67500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006980",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30536852294",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 63500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006981",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30714679933",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 70500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006982",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30517152214",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 54000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006983",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30538269782",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 52000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006984",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30690819011",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL CONDICION DE PAGO: CUENTA CORRIENTE PR.UNIT. TOTAL 53.000,0000 53.000,00",
+    "total": 53000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006985",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "33562639859",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 60000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006986",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30541088047",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 59000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006987",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30599736162",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 52000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006988",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30676235546",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 48000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006989",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30554227542",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 59000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006991",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30578794669",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 37000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006992",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30634220255",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 75000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006993",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30715257617",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 59000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006994",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30687075362",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 155000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006995",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30582396988",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 49000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006996",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30718179684",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 45500.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006997",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "30714555444",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 35000.0,
+    "periodo": "2026-04"
+  },
+  {
+    "numero": "00004-00006998",
+    "fecha_emision": "06/04/2026",
+    "cuit_cliente": "33613903599",
+    "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
+    "total": 37000.0,
+    "periodo": "2026-04"
   }
 ]
