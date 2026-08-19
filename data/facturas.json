@@ -1195,13 +1195,11 @@
     "numero": "0004-00006604",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 100000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006605",
@@ -2899,13 +2897,11 @@
     "numero": "0004-00006741",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 100000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006742",
@@ -3371,13 +3367,11 @@
     "numero": "0004-00006778",
     "fecha_emision": "04/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "TRATAMIENTO CONTRA MURCIELAGOS - 2 VENTANAS 1 (3M) 1 (2M) - 2* PISO \"B\"",
     "total": 250000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006779",
@@ -4575,13 +4569,11 @@
     "numero": "0004-00006881",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 108500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006882",
@@ -5007,13 +4999,11 @@
     "numero": "0004-00006914",
     "fecha_emision": "20/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "DESRATIZACIÓN INTEGRAL - SERVICIO REALIZADO 19-03-2026",
     "total": 40000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001268",
@@ -6261,13 +6251,11 @@
     "numero": "0004-00007022",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 108500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007023",
@@ -7985,13 +7973,11 @@
     "numero": "0004-00007160",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 108500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007161",
@@ -9659,13 +9645,11 @@
     "numero": "0004-00007300",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 120000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007301",
@@ -11413,13 +11397,11 @@
     "numero": "0004-00007445",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30518620262",
     "cliente_informe": "CONSORCIO: SUIPACHA 1256",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 120000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30544900222",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AV STA FE 1256"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007446",
