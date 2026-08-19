@@ -437,13 +437,11 @@
     "numero": "0004-00001190",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 105000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006539",
@@ -2149,13 +2147,11 @@
     "numero": "0004-00001221",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 105000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006675",
@@ -3843,13 +3839,11 @@
     "numero": "0004-00001247",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 114000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006815",
@@ -5549,13 +5543,11 @@
     "numero": "0004-00001275",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 114000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006956",
@@ -7293,13 +7285,11 @@
     "numero": "0004-00001306",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 114000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007094",
@@ -8993,13 +8983,11 @@
     "numero": "0004-00001333",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 125000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007234",
@@ -10767,13 +10755,11 @@
     "numero": "0004-00001363",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707474447",
     "cliente_informe": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIED",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 125000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "30707474447",
-    "nombre_sugerido": "RICHARDS CARDINAL TUTZER ZABALA & ZAEFFERER SOCIEDAD CIVIL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007379",
