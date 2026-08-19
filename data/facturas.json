@@ -305,13 +305,11 @@
     "numero": "0004-00006532",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 240000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006533",
@@ -2003,13 +2001,11 @@
     "numero": "0004-00006668",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 240000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006669",
@@ -3693,13 +3689,11 @@
     "numero": "0004-00006808",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 260000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006809",
@@ -5385,13 +5379,11 @@
     "numero": "0004-00006949",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 260000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006950",
@@ -7123,13 +7115,11 @@
     "numero": "0004-00007087",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 260000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007088",
@@ -8811,13 +8801,11 @@
     "numero": "0004-00007227",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 286000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007228",
@@ -10569,13 +10557,11 @@
     "numero": "0004-00007372",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30714365432",
     "cliente_informe": "CONSORCIO: EDIFICIO TORRE BERUTI 4646",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 286000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007373",
