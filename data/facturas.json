@@ -113,13 +113,11 @@
     "numero": "0004-00006514",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 112000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006515",
@@ -1809,13 +1807,11 @@
     "numero": "0004-00006650",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 112000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006651",
@@ -3497,13 +3493,11 @@
     "numero": "0004-00006790",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 121000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006791",
@@ -4963,13 +4957,11 @@
     "numero": "0004-00006909",
     "fecha_emision": "09/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "TRATAMIENTO CONTRA MURCIELAGOS - TRATAMIENTO CON PASTILLAS EN HUECO DE - (MOCHETA) DE MONTANTES DESDE PISO 1* AL 9*",
     "total": 240000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006910",
@@ -5187,13 +5179,11 @@
     "numero": "0004-00006931",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 121000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006932",
@@ -6923,13 +6913,11 @@
     "numero": "0004-00007069",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 121000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007070",
@@ -8609,13 +8597,11 @@
     "numero": "0004-00007209",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 132000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007210",
@@ -10365,13 +10351,11 @@
     "numero": "0004-00007354",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30535588844",
     "cliente_informe": "CONSORCIO: ADOLFO BIOY CASARES 2029",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 132000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30535588844",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS EDUARDO SCHIAFFINO 2029 AL 2035"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007355",
