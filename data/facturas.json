@@ -1571,13 +1571,11 @@
     "numero": "0004-00006630",
     "fecha_emision": "06/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006631",
@@ -3251,13 +3249,11 @@
     "numero": "0004-00006766",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006767",
@@ -4933,13 +4929,11 @@
     "numero": "0004-00006906",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001267",
@@ -6667,13 +6661,11 @@
     "numero": "0004-00007049",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007050",
@@ -10087,13 +10079,11 @@
     "numero": "0004-00007328",
     "fecha_emision": "04/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 41000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007329",
@@ -11869,25 +11859,21 @@
     "numero": "0004-00007473",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 84000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00000502",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716662353",
     "cliente_informe": "CONSORCIO: QUITO 3715",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": -84000.0,
-    "tipo": "NC",
-    "cuit_sugerido": "30716662353",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE QUITO 3715,3717 Y 3719 DE LA CIUDAD AUTONOMA DE BUENOS AIRES"
+    "tipo": "NC"
   },
   {
     "numero": "0004-00007474",
