@@ -1319,13 +1319,11 @@
     "numero": "0004-00006612",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 75000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006613",
@@ -3061,13 +3059,11 @@
     "numero": "0004-00006749",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 75000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006750",
@@ -4777,13 +4773,11 @@
     "numero": "0004-00006889",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 81000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006890",
@@ -6505,13 +6499,11 @@
     "numero": "0004-00007030",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 81000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007031",
@@ -8271,13 +8263,11 @@
     "numero": "0004-00007168",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 81000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007169",
@@ -9979,13 +9969,11 @@
     "numero": "0004-00007308",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 89000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007309",
@@ -11773,13 +11761,11 @@
     "numero": "0004-00007453",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716195070",
     "cliente_informe": "CONSORCIO: SUCRE 1575",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 89000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716195070",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 1575-79-81 DE LA CIUDAD AUTONOMA DE B"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007454",
