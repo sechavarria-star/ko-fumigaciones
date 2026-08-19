@@ -135,6 +135,9 @@ thead th {
   white-space: nowrap;
 }
 th.num, td.num { text-align: right; }
+thead th[data-sort] { cursor: pointer; user-select: none; }
+thead th[data-sort]:hover { color: var(--text); }
+.sort-arrow { display: inline-block; margin-left: 3px; color: var(--brand); }
 tbody tr { cursor: pointer; border-bottom: 1px solid var(--border); }
 tbody tr:hover { background: var(--panel-2); }
 tbody tr:last-child { border-bottom: none; }

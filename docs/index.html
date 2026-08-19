@@ -62,12 +62,12 @@
         <table id="tabla-clientes">
           <thead>
             <tr>
-              <th>Cliente</th>
-              <th>CUIT</th>
-              <th class="num">Facturado</th>
-              <th class="num">Cobrado</th>
-              <th class="num">Pendiente</th>
-              <th>Estado</th>
+              <th data-sort="nombre">Cliente<span class="sort-arrow"></span></th>
+              <th data-sort="cuit">CUIT<span class="sort-arrow"></span></th>
+              <th class="num" data-sort="total_facturado">Facturado<span class="sort-arrow"></span></th>
+              <th class="num" data-sort="total_pagado">Cobrado<span class="sort-arrow"></span></th>
+              <th class="num" data-sort="total_pendiente">Pendiente<span class="sort-arrow"></span></th>
+              <th data-sort="estado">Estado<span class="sort-arrow"></span></th>
             </tr>
           </thead>
           <tbody id="tbody-clientes"></tbody>

@@ -161,21 +161,51 @@ function renderKpis() {
 }
 
 let busquedaClientes = "";
+let ordenColumna = null;
+let ordenDireccion = "desc"; // "desc" | "asc" - clic en un header ordena de mayor a menor primero
 
 function clientesFiltrados() {
   const q = busquedaClientes.trim().toLowerCase();
-  return CLIENTES_VIEW.filter((c) => {
+  let lista = CLIENTES_VIEW.filter((c) => {
     if (filtroActual === "pendiente" && c.total_pendiente <= 0) return false;
     if (filtroActual === "pagada" && c.total_pendiente !== 0) return false;
     if (q && !c.nombre.toLowerCase().includes(q) && !c.cuit.includes(q)) return false;
     return true;
   });
+
+  if (ordenColumna) {
+    const dir = ordenDireccion === "desc" ? -1 : 1;
+    lista = [...lista].sort((a, b) => {
+      const va = ordenColumna === "estado" ? (a.total_pendiente === 0 ? 1 : 0) : a[ordenColumna];
+      const vb = ordenColumna === "estado" ? (b.total_pendiente === 0 ? 1 : 0) : b[ordenColumna];
+      if (typeof va === "string") return dir * va.localeCompare(vb);
+      return dir * (va - vb);
+    });
+  }
+
+  return lista;
 }
 
 document.getElementById("buscar-clientes").addEventListener("input", (e) => {
   busquedaClientes = e.target.value;
   renderTabla();
 });
+
+document.querySelectorAll("#tabla-clientes thead th[data-sort]").forEach((th) => {
+  th.addEventListener("click", () => {
+    const campo = th.dataset.sort;
+    ordenDireccion = ordenColumna === campo && ordenDireccion === "desc" ? "asc" : "desc";
+    ordenColumna = campo;
+    renderTabla();
+  });
+});
+
+function actualizarFlechasOrden() {
+  document.querySelectorAll("#tabla-clientes thead th[data-sort]").forEach((th) => {
+    const flecha = th.querySelector(".sort-arrow");
+    flecha.textContent = th.dataset.sort === ordenColumna ? (ordenDireccion === "desc" ? " ▼" : " ▲") : "";
+  });
+}
 
 function renderTabla() {
   const tbody = document.getElementById("tbody-clientes");
@@ -200,6 +230,8 @@ function renderTabla() {
   tbody.querySelectorAll("tr").forEach((tr) => {
     tr.addEventListener("click", () => abrirModal(tr.dataset.cuit));
   });
+
+  actualizarFlechasOrden();
 }
 
 function formatCuit(cuit) {
