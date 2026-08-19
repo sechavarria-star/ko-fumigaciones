@@ -176,6 +176,19 @@ function initGoogleSignIn() {
 
 document.getElementById("btn-signout").addEventListener("click", () => cerrarSesion());
 
+document.getElementById("btn-actualizar").addEventListener("click", async (e) => {
+  const btn = e.target;
+  btn.disabled = true;
+  btn.textContent = "Actualizando…";
+  try {
+    await cargarDatosAutenticado();
+  } catch (err) {
+    avisarError(err, "No se pudo actualizar: ");
+  }
+  btn.disabled = false;
+  btn.textContent = "Actualizar";
+});
+
 // --- menú principal (Tablero / Facturas / Extractos / Clientes / Usuarios) ---
 function irAPagina(pagina) {
   document.querySelectorAll(".navitem").forEach((b) => b.classList.toggle("active", b.dataset.page === pagina));
