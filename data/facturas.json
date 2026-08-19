@@ -11977,12 +11977,10 @@
     "numero": "0004-00007481",
     "fecha_emision": "31/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30692198650",
     "cliente_informe": "ASOCIACION DE EX ALUMNOS DE LAS ESCUELAS E INSTITU",
     "detalle": "FUMIGACIÓN INTEGRAL - Biblioteca Popular William C. Morris - 1.175,00 Totales de la Empresa 107.576.630,00 - 1.175,00 107,576,630.00",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30692198650",
-    "nombre_sugerido": "ASOCIACION DE EX ALUMNOS DE LAS ESCUELAS E INSTITUTOS FILANTROPICOS ARGENTINOS Y BIBLIOTECA POPULAR"
+    "tipo": "FC"
   }
 ]
