@@ -825,13 +825,11 @@
     "numero": "0004-00001193",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "20932834260",
     "cliente_informe": "JOSE MIRAMONTES SANCHEZ (PANADERIA LAS FAMILIAS)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 44500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20932834260",
-    "nombre_sugerido": "MIRAMONTES SANCHEZ JOSE"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006574",
@@ -2547,13 +2545,11 @@
     "numero": "0004-00001224",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "20932834260",
     "cliente_informe": "JOSE MIRAMONTES SANCHEZ (PANADERIA LAS FAMILIAS)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 44500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20932834260",
-    "nombre_sugerido": "MIRAMONTES SANCHEZ JOSE"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006710",
@@ -4253,13 +4249,11 @@
     "numero": "0004-00001250",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "20932834260",
     "cliente_informe": "JOSE MIRAMONTES SANCHEZ (PANADERIA LAS FAMILIAS)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 48000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20932834260",
-    "nombre_sugerido": "MIRAMONTES SANCHEZ JOSE"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006850",
@@ -5971,13 +5965,11 @@
     "numero": "0004-00001278",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "20932834260",
     "cliente_informe": "JOSE MIRAMONTES SANCHEZ (PANADERIA LAS FAMILIAS)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 48000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20932834260",
-    "nombre_sugerido": "MIRAMONTES SANCHEZ JOSE"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006991",
@@ -6853,13 +6845,11 @@
     "numero": "0004-00000104",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "20932834260",
     "cliente_informe": "JOSE MIRAMONTES SANCHEZ (PANADERIA LAS FAMILIAS)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": -48000.0,
-    "tipo": "NC",
-    "cuit_sugerido": "20932834260",
-    "nombre_sugerido": "MIRAMONTES SANCHEZ JOSE"
+    "tipo": "NC"
   },
   {
     "numero": "0004-00001299",
@@ -7727,13 +7717,11 @@
     "numero": "0004-00001309",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "20932834260",
     "cliente_informe": "JOSE MIRAMONTES SANCHEZ (PANADERIA LAS FAMILIAS)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 48000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20932834260",
-    "nombre_sugerido": "MIRAMONTES SANCHEZ JOSE"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007129",
