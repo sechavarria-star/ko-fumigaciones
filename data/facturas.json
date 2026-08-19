@@ -855,13 +855,11 @@
     "numero": "0004-00006576",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 135000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006577",
@@ -1609,13 +1607,11 @@
     "numero": "0004-00006632",
     "fecha_emision": "13/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "DESRATIZACIÓN INTEGRAL - COLCACIÓN CEBOS EN TODO EL PERIMETRO DE LAS TORRES",
     "total": 45000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006633",
@@ -2585,13 +2581,11 @@
     "numero": "0004-00006713",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 135000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006714",
@@ -4289,13 +4283,11 @@
     "numero": "0004-00006853",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 135000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006854",
@@ -5067,13 +5059,11 @@
     "numero": "0004-00006912",
     "fecha_emision": "12/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "DESRATIZACIÓN INTEGRAL - ABONO MES MARZO",
     "total": 45000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006913",
@@ -6005,13 +5995,11 @@
     "numero": "0004-00006994",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 155000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006995",
@@ -6801,13 +6789,11 @@
     "numero": "0004-00007053",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "DESRATIZACIÓN INTEGRAL",
     "total": 45000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007054",
@@ -7757,13 +7743,11 @@
     "numero": "0004-00007132",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 155000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007133",
@@ -8499,13 +8483,11 @@
     "numero": "0004-00007187",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 45000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007188",
@@ -9455,13 +9437,11 @@
     "numero": "0004-00007272",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 155000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007273",
@@ -10219,13 +10199,11 @@
     "numero": "0004-00007329",
     "fecha_emision": "04/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO - DESRATIZACION INTEGRAL ABONO JUNIO",
     "total": 45000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007330",
@@ -11237,13 +11215,11 @@
     "numero": "0004-00007417",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 168000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007418",
@@ -11999,13 +11975,11 @@
     "numero": "0004-00007472",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30687075362",
     "cliente_informe": "CONSORCIO: QUARTIER DEMARIA",
     "detalle": "DESRATIZACIÓN INTEGRAL - ABONO MES DE JULIO",
     "total": 48000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30687075362",
-    "nombre_sugerido": "CONSORCIO CONJUNTO QUARTIER DEMARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007473",
