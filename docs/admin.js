@@ -240,24 +240,16 @@ wireDropzone("dropzone-informe", (archivos) => archivos[0] && subirInformeConsol
 
 async function subirInformeConsolidado(file) {
   const draftEl = document.getElementById("informe-draft");
-  const confirmado = window.confirm(
-    `Vas a reemplazar TODA la base de facturas y pagos actual (${FACTURAS.length} factura(s), ${PAGOS.length} pago(s)) por lo que traiga "${file.name}". Esto no se puede deshacer. ¿Confirmás?`
-  );
-  if (!confirmado) {
-    document.getElementById("input-informe").value = "";
-    return;
-  }
-
   draftEl.innerHTML = `<div class="draft-card">Leyendo el informe y matcheando clientes… puede tardar un minuto.</div>`;
   const fd = new FormData();
   fd.append("file", file);
   try {
     const resultado = await llamarBackend("/api/facturas/importar-informe", { method: "POST", body: fd });
-    draftEl.innerHTML = `<div class="draft-card">Importadas ${resultado.total} factura(s): ${resultado.matcheadas} asociada(s) a un cliente automáticamente, ${resultado.pendientes} pendiente(s) de validar${resultado.pendientes ? " (revisalas en la pestaña Pendientes)" : ""}.</div>`;
+    draftEl.innerHTML = `<div class="draft-card">${resultado.agregadas} factura(s) nueva(s), ${resultado.actualizadas} actualizada(s). Quedan ${resultado.pendientes} pendiente(s) de validar en toda la base${resultado.pendientes ? " (revisalas en la pestaña Pendientes)" : ""}.</div>`;
     document.getElementById("input-informe").value = "";
     COLA_CONSOLIDACION = [];
     await cargarDatosAutenticado();
-    mostrarAviso(`Informe importado: ${resultado.total} factura(s), ${resultado.pendientes} pendiente(s) de validar.`, "ok");
+    mostrarAviso(`Informe importado: ${resultado.agregadas} nueva(s), ${resultado.actualizadas} actualizada(s).`, "ok");
   } catch (err) {
     avisarError(err, "No se pudo importar el informe: ");
     draftEl.innerHTML = "";

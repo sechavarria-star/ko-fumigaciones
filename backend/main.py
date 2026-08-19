@@ -119,16 +119,19 @@ def confirmar_pago(body: dict, authorization: str | None = Header(None)):
 
 
 # --- 2) informe consolidado mensual de facturas ---
-# Reemplaza a la carga de facturas una por una: KO exporta un único PDF con
-# todos los comprobantes del período (sin CUIT, solo nombre de cliente en
-# texto libre), y esto lo matchea contra Clientes automáticamente donde puede.
-# Es DESTRUCTIVO (pisa toda la base de facturas y pagos) - por eso queda
-# restringido a admin, con el frontend pidiendo confirmación explícita antes
-# de llamarlo.
+# Reemplaza a la carga de facturas una por una: KO exporta un PDF con los
+# comprobantes del período (sin CUIT, solo nombre de cliente en texto
+# libre), y esto lo matchea contra Clientes automáticamente donde puede. Se
+# sube un informe por mes (no el acumulado completo cada vez), así que esto
+# es un upsert por número de comprobante contra la base existente, NUNCA un
+# reemplazo total - y no toca pagos.json, para no perder la conciliación ya
+# hecha de meses anteriores. Si una factura ya tenía el CUIT confirmado (a
+# mano o por el matcheo automático de una carga previa), ese CUIT se
+# conserva aunque este informe la vuelva a traer.
 @app.post("/api/facturas/importar-informe")
 async def importar_informe(file: UploadFile, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
-    requerir_perfil(usuario, "admin")
+    requerir_perfil(usuario, "admin", "supervisor")
     try:
         texto = pdf_extract.extraer_texto(await file.read())
     except RuntimeError as exc:
@@ -141,8 +144,13 @@ async def importar_informe(file: UploadFile, authorization: str | None = Header(
     clientes, _ = github_store.get_json("data/clientes.json")
     informe_parser.matchear_clientes(registros, clientes)
 
-    facturas = []
+    facturas_actuales, _ = github_store.get_json("data/facturas.json")
+    por_numero = {f["numero"]: f for f in facturas_actuales}
+
+    agregadas = 0
+    actualizadas = 0
     for r in registros:
+        anterior = por_numero.get(r["numero"])
         factura = {
             "numero": r["numero"],
             "fecha_emision": r["fecha_emision"],
@@ -153,26 +161,34 @@ async def importar_informe(file: UploadFile, authorization: str | None = Header(
             "total": r["total"],
             "tipo": r["tipo"],
         }
-        if r.get("cuit_sugerido"):
+        if anterior and anterior.get("cuit_cliente"):
+            # ya estaba confirmado (a mano o de una carga anterior) - no lo pisamos
+            factura["cuit_cliente"] = anterior["cuit_cliente"]
+        elif r.get("cuit_sugerido"):
             factura["cuit_sugerido"] = r["cuit_sugerido"]
             factura["nombre_sugerido"] = r["nombre_sugerido"]
-        facturas.append(factura)
 
+        if anterior:
+            actualizadas += 1
+        else:
+            agregadas += 1
+        por_numero[r["numero"]] = factura
+
+    facturas = list(por_numero.values())
     github_store.put_json(
         "data/facturas.json",
         facturas,
-        f"Importa informe consolidado ({file.filename}): reemplaza toda la base por {len(facturas)} comprobante(s) ({usuario['email']})",
-        usuario["email"],
-    )
-    github_store.put_json(
-        "data/pagos.json",
-        [],
-        f"Vacía pagos.json por importación de informe consolidado ({usuario['email']})",
+        f"Importa informe ({file.filename}): {agregadas} factura(s) nueva(s), {actualizadas} actualizada(s) ({usuario['email']})",
         usuario["email"],
     )
 
     pendientes = sum(1 for f in facturas if not f["cuit_cliente"])
-    return {"total": len(facturas), "matcheadas": len(facturas) - pendientes, "pendientes": pendientes}
+    return {
+        "agregadas": agregadas,
+        "actualizadas": actualizadas,
+        "total_en_base": len(facturas),
+        "pendientes": pendientes,
+    }
 
 
 # Resuelve a mano las facturas que el matcheo automático dejó sin CUIT -
