@@ -11961,13 +11961,11 @@
     "numero": "0004-00001384",
     "fecha_emision": "20/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "33618017619",
     "cliente_informe": "SALPE SOCIEDAD ANONIMA INDUSTRIAL FINANCIERA Y AGR",
     "detalle": "CFE - FUMIGACION INTEGRAL - CON CERTIFICADO OBRA AVENIDA JUAN B. ALBERDI 2357",
     "total": 65000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33618017619",
-    "nombre_sugerido": "SALPE SOCIEDAD ANONIMA INDUSTRIAL FINANCIERA Y AGROPECUARIA"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001385",
