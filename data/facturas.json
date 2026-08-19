@@ -1157,13 +1157,11 @@
     "numero": "0004-00006599",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 168000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006600",
@@ -2901,13 +2899,11 @@
     "numero": "0004-00006736",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 168000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006737",
@@ -4619,13 +4615,11 @@
     "numero": "0004-00006876",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 168000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006877",
@@ -6349,13 +6343,11 @@
     "numero": "0004-00007017",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 187500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007018",
@@ -8117,13 +8109,11 @@
     "numero": "0004-00007155",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 187500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007156",
@@ -9827,13 +9817,11 @@
     "numero": "0004-00007295",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 187500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007296",
@@ -11623,13 +11611,11 @@
     "numero": "0004-00007440",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707953027",
     "cliente_informe": "CONSORCIO: ARCOS DEL POLO",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 203000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707953027",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS TORRES LOS ARCOS DEL POLO"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007441",
