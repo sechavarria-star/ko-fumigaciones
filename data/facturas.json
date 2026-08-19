@@ -5033,13 +5033,11 @@
     "numero": "0004-00006911",
     "fecha_emision": "12/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30536953368",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1856/60/62",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO - 2 SERVICIOS POR MES",
     "total": 130000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30536953368",
-    "nombre_sugerido": "CONS PROP CORONEL DIAZ 1856 AL 62 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006912",
@@ -5087,13 +5085,11 @@
     "numero": "0004-00006915",
     "fecha_emision": "25/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30536953368",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1856/60/62",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO - 2 SERVICIOS POR MES",
     "total": 130000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30536953368",
-    "nombre_sugerido": "CONS PROP CORONEL DIAZ 1856 AL 62 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006916",
@@ -6709,13 +6705,11 @@
     "numero": "0004-00007048",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30536953368",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1856/60/62",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL - 2 SERVICIOS POR MES",
     "total": 130000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30536953368",
-    "nombre_sugerido": "CONS PROP CORONEL DIAZ 1856 AL 62 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007049",
@@ -8515,13 +8509,11 @@
     "numero": "0004-00007191",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30536953368",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1856/60/62",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO - 2 SERVICIOS MES DE MAYO",
     "total": 130000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30536953368",
-    "nombre_sugerido": "CONS PROP CORONEL DIAZ 1856 AL 62 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007192",
@@ -10209,13 +10201,11 @@
     "numero": "0004-00007332",
     "fecha_emision": "04/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30536953368",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1856/60/62",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO - 2 SERVICIOS POR MES",
     "total": 142000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30536953368",
-    "nombre_sugerido": "CONS PROP CORONEL DIAZ 1856 AL 62 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007333",
@@ -12027,13 +12017,11 @@
     "numero": "0004-00007477",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30536953368",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1856/60/62",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO - 2 SERVICIOS MES DE JULIO 2026",
     "total": 142000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30536953368",
-    "nombre_sugerido": "CONS PROP CORONEL DIAZ 1856 AL 62 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007478",
