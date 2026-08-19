@@ -295,13 +295,11 @@
     "numero": "0004-00006531",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 125000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006532",
@@ -1441,13 +1439,11 @@
     "numero": "0004-00006621",
     "fecha_emision": "06/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "MONITOREO DE ROEDORES",
     "total": 18000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006622",
@@ -2011,13 +2007,11 @@
     "numero": "0004-00006667",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 143000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006668",
@@ -3303,37 +3297,31 @@
     "numero": "0004-00000497",
     "fecha_emision": "06/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": -143000.0,
-    "tipo": "NC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "NC"
   },
   {
     "numero": "0004-00006768",
     "fecha_emision": "06/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 125000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006769",
     "fecha_emision": "06/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "MONITOREO DE ROEDORES",
     "total": 18000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006770",
@@ -3723,13 +3711,11 @@
     "numero": "0004-00006807",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 145000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006808",
@@ -5435,13 +5421,11 @@
     "numero": "0004-00006948",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 165000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006949",
@@ -7193,13 +7177,11 @@
     "numero": "0004-00007086",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 165000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007087",
@@ -8897,13 +8879,11 @@
     "numero": "0004-00007226",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 165000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007227",
@@ -10675,13 +10655,11 @@
     "numero": "0004-00007371",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707113282",
     "cliente_informe": "CONSORCIO: QUARTIER SINCLAIR",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 183000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707113282",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CONJUNTO QUARTIER SINCLAIR"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007372",
