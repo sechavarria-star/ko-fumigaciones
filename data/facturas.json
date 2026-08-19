@@ -1123,13 +1123,11 @@
     "numero": "0004-00006596",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 53000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006597",
@@ -2859,13 +2857,11 @@
     "numero": "0004-00006733",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 53000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006734",
@@ -4569,13 +4565,11 @@
     "numero": "0004-00006873",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 57500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006874",
@@ -6291,13 +6285,11 @@
     "numero": "0004-00007014",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 57500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007015",
@@ -8051,13 +8043,11 @@
     "numero": "0004-00007152",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 57500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007153",
@@ -9753,13 +9743,11 @@
     "numero": "0004-00007292",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 63000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007293",
@@ -11541,13 +11529,11 @@
     "numero": "0004-00007437",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30707691332",
     "cliente_informe": "V. FENELON S.R.L. (OLAV. 1341)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 63000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30707691332",
-    "nombre_sugerido": "V. FENELON S.R.L."
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007438",
