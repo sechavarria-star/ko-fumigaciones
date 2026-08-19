@@ -10219,13 +10219,11 @@
     "numero": "0004-00007341",
     "fecha_emision": "24/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716326116",
     "cliente_informe": "CONSORCIO: MARISCAL A. J. SUCRE 4746",
     "detalle": "FUMIGACION INTEGRAL TRIMESTRAL - JUNIO 2026",
     "total": 60000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716326116",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS CALLE MARISCAL ANTONIO JOSE DE SUCRE 4744-4746 DE LA CIUDAD AUTONOMA DE BU"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001355",
