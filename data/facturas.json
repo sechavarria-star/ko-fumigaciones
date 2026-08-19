@@ -6741,13 +6741,11 @@
     "numero": "0004-00001298",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30686177382",
     "cliente_informe": "EMPRESA DE ARQUITECTURA Y CONSTRUCCIONES SRL",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 45000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30686177382",
-    "nombre_sugerido": "EMPRESA DE ARQUITECTURA Y CONSTRUCCIONESSRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00000104",
