@@ -639,13 +639,11 @@
     "numero": "0004-00006557",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 56500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006558",
@@ -2347,13 +2345,11 @@
     "numero": "0004-00006693",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 56500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006694",
@@ -4037,13 +4033,11 @@
     "numero": "0004-00006833",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 61000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006834",
@@ -5739,13 +5733,11 @@
     "numero": "0004-00006974",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 61000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006975",
@@ -7479,13 +7471,11 @@
     "numero": "0004-00007112",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 61000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007113",
@@ -9175,13 +9165,11 @@
     "numero": "0004-00007252",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 66000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007253",
@@ -10945,13 +10933,11 @@
     "numero": "0004-00007397",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30709478784",
     "cliente_informe": "CONSORCIO: VALENTIN GOMEZ 3174",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 66000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30709478784",
-    "nombre_sugerido": "CONS PROP VALENTIN GOMEZ 3162"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007398",
