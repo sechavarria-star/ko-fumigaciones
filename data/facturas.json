@@ -1665,13 +1665,11 @@
     "numero": "0004-00006636",
     "fecha_emision": "03/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO - FUMIGACION INTEGRAL CONSORCIO ECHEVERRIA 4328",
     "total": 50000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001213",
@@ -3077,13 +3075,11 @@
     "numero": "0004-00006754",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 50000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001235",
@@ -4763,13 +4759,11 @@
     "numero": "0004-00006894",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 50000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001261",
@@ -6461,13 +6455,11 @@
     "numero": "0004-00007035",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 50000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001289",
@@ -8197,13 +8189,11 @@
     "numero": "0004-00007173",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 50000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001320",
@@ -9879,13 +9869,11 @@
     "numero": "0004-00007313",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 55000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001346",
@@ -11645,13 +11633,11 @@
     "numero": "0004-00007458",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30716939290",
     "cliente_informe": "BEMEDESARROLLOS SRL - CONS. ECHEVERRIA 4328",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 55000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30716939290",
-    "nombre_sugerido": "BEMEDESARROLLOS SRL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00001376",
