@@ -271,14 +271,28 @@ async function subirInformeConsolidado(file) {
 
 // --- 3) facturas pendientes de validar (el informe no trae CUIT y el
 // matcheo automático no encontró un cliente con confianza suficiente) ---
+let busquedaPendientes = "";
+
+document.getElementById("buscar-pendientes").addEventListener("input", (e) => {
+  busquedaPendientes = e.target.value;
+  renderPendientesLista();
+});
+
 function renderPendientesLista() {
   const el = document.getElementById("pendientes-lista");
   if (!PENDIENTES_VALIDAR.length) {
     el.innerHTML = `<p class="hint">No hay facturas pendientes de validar.</p>`;
     return;
   }
-  el.innerHTML = PENDIENTES_VALIDAR.map(
-    (p, i) => `
+  const q = busquedaPendientes.trim().toLowerCase();
+  const items = PENDIENTES_VALIDAR.map((p, i) => ({ p, i })).filter(({ p }) => !q || p.cliente_informe.toLowerCase().includes(q));
+  if (!items.length) {
+    el.innerHTML = `<p class="hint">Ningún nombre coincide con "${busquedaPendientes}" (hay ${PENDIENTES_VALIDAR.length} pendiente${PENDIENTES_VALIDAR.length === 1 ? "" : "s"} en total).</p>`;
+    return;
+  }
+  el.innerHTML = items
+    .map(
+      ({ p, i }) => `
     <div class="pendiente-item">
       <div>
         <div class="pendiente-nombre">${p.cliente_informe}</div>
@@ -289,7 +303,8 @@ function renderPendientesLista() {
         <button type="submit">Confirmar</button>
       </form>
     </div>`
-  ).join("");
+    )
+    .join("");
 
   el.querySelectorAll(".form-confirmar-cuit").forEach((form) => {
     form.addEventListener("submit", async (e) => {
@@ -399,6 +414,13 @@ async function procesarArchivosExtracto(files) {
   renderColaConsolidacion();
 }
 
+let busquedaCola = "";
+
+document.getElementById("buscar-cola").addEventListener("input", (e) => {
+  busquedaCola = e.target.value;
+  renderColaConsolidacion();
+});
+
 function renderColaConsolidacion() {
   const el = document.getElementById("cola-consolidacion");
   const reintentar = ULTIMOS_EXTRACTOS.length
@@ -413,8 +435,18 @@ function renderColaConsolidacion() {
     return;
   }
 
-  const filas = COLA_CONSOLIDACION.map(
-    (m, i) => `
+  const q = busquedaCola.trim().toLowerCase();
+  const items = COLA_CONSOLIDACION.map((m, i) => ({ m, i })).filter(
+    ({ m }) => !q || [m.nombre_cliente, m.factura_numero, m.tipo_movimiento, m.extracto_label].some((v) => (v || "").toLowerCase().includes(q))
+  );
+
+  if (!items.length) {
+    el.innerHTML = `<p class="hint">Ningún resultado coincide con "${busquedaCola}" (hay ${COLA_CONSOLIDACION.length} en la cola).</p>`;
+    return;
+  }
+
+  const filas = items.map(
+    ({ m, i }) => `
     <tr>
       <td><input type="checkbox" data-idx="${i}" class="chk-consolidar" checked></td>
       <td>${m.nombre_cliente}<div class="archivo">FC ${m.factura_numero}</div></td>
@@ -425,12 +457,14 @@ function renderColaConsolidacion() {
     </tr>`
   );
 
+  const totalTxt = items.length === COLA_CONSOLIDACION.length ? "" : ` de ${COLA_CONSOLIDACION.length} en la cola`;
   el.innerHTML = `
     <div class="lote-resumen">
       <div class="lote-acciones lote-acciones-top">
-        <button id="btn-consolidar">Consolidar ${COLA_CONSOLIDACION.length} pago${COLA_CONSOLIDACION.length === 1 ? "" : "s"}</button>
+        <button id="btn-consolidar">Consolidar ${items.length} pago${items.length === 1 ? "" : "s"}</button>
         <button id="btn-vaciar-cola" type="button" class="btn-confirmar-pago">Vaciar cola</button>
         ${reintentar}
+        <span class="resumen-txt">${items.length} mostrado${items.length === 1 ? "" : "s"}${totalTxt}</span>
       </div>
       <div class="table-wrap">
         <table>
@@ -517,36 +551,60 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
   }
 });
 
+let busquedaClientesAdmin = "";
+
+document.getElementById("buscar-clientes-admin").addEventListener("input", (e) => {
+  busquedaClientesAdmin = e.target.value;
+  renderTablaClientesAdmin();
+});
+
 function renderTablaClientesAdmin() {
   const tbody = document.getElementById("tbody-clientes-admin");
   if (!tbody) return;
+  const q = busquedaClientesAdmin.trim().toLowerCase();
   const filas = Object.entries(CLIENTES)
+    .filter(([cuit, info]) => !q || cuit.includes(q) || info.nombre.toLowerCase().includes(q))
     .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
     .map(([cuit, info]) => `<tr><td class="cuit">${formatCuit(cuit)}</td><td>${info.nombre}</td><td>${info.condicion_iva || ""}</td></tr>`);
-  tbody.innerHTML = filas.join("");
+  tbody.innerHTML = filas.join("") || `<tr><td colspan="3">Ningún cliente coincide con la búsqueda.</td></tr>`;
 }
 
 // --- 5) usuarios (solo admin) ---
+let USUARIOS_CACHE = {};
+let busquedaUsuarios = "";
+
+document.getElementById("buscar-usuarios").addEventListener("input", (e) => {
+  busquedaUsuarios = e.target.value;
+  renderTablaUsuarios();
+});
+
 async function cargarUsuarios() {
   if (YO.perfil !== "admin") return;
   const tbody = document.getElementById("tbody-usuarios");
   tbody.innerHTML = `<tr><td colspan="4">Cargando…</td></tr>`;
   try {
-    const usuarios = await llamarBackend("/api/usuarios");
-    const filas = Object.entries(usuarios)
-      .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
-      .map(
-        ([email, info]) => `
-        <tr>
-          <td>${info.nombre} ${info.apellido}</td>
-          <td>${email}</td>
-          <td>${etiquetaPerfil(info.perfil)}</td>
-        </tr>`
-      );
-    tbody.innerHTML = filas.join("") || `<tr><td colspan="3">Sin usuarios cargados todavía.</td></tr>`;
+    USUARIOS_CACHE = await llamarBackend("/api/usuarios");
+    renderTablaUsuarios();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="3" class="warn-text">No se pudo cargar: ${err.message}</td></tr>`;
   }
+}
+
+function renderTablaUsuarios() {
+  const tbody = document.getElementById("tbody-usuarios");
+  const q = busquedaUsuarios.trim().toLowerCase();
+  const filas = Object.entries(USUARIOS_CACHE)
+    .filter(([email, info]) => !q || `${info.nombre} ${info.apellido}`.toLowerCase().includes(q) || email.toLowerCase().includes(q))
+    .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
+    .map(
+      ([email, info]) => `
+      <tr>
+        <td>${info.nombre} ${info.apellido}</td>
+        <td>${email}</td>
+        <td>${etiquetaPerfil(info.perfil)}</td>
+      </tr>`
+    );
+  tbody.innerHTML = filas.join("") || `<tr><td colspan="3">Ningún usuario coincide con la búsqueda.</td></tr>`;
 }
 
 document.getElementById("form-usuario").addEventListener("submit", async (e) => {

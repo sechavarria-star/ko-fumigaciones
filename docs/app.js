@@ -160,14 +160,22 @@ function renderKpis() {
   `;
 }
 
+let busquedaClientes = "";
+
 function clientesFiltrados() {
+  const q = busquedaClientes.trim().toLowerCase();
   return CLIENTES_VIEW.filter((c) => {
-    if (filtroActual === "todos") return true;
-    if (filtroActual === "pendiente") return c.total_pendiente > 0;
-    if (filtroActual === "pagada") return c.total_pendiente === 0;
+    if (filtroActual === "pendiente" && c.total_pendiente <= 0) return false;
+    if (filtroActual === "pagada" && c.total_pendiente !== 0) return false;
+    if (q && !c.nombre.toLowerCase().includes(q) && !c.cuit.includes(q)) return false;
     return true;
   });
 }
+
+document.getElementById("buscar-clientes").addEventListener("input", (e) => {
+  busquedaClientes = e.target.value;
+  renderTabla();
+});
 
 function renderTabla() {
   const tbody = document.getElementById("tbody-clientes");

@@ -100,6 +100,15 @@ body {
 }
 .panel-head h2 { margin: 0; font-size: 1rem; }
 
+.panel-head-right { display: flex; align-items: center; gap: 12px; }
+.buscador {
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 7px 10px; font-size: 0.85rem; width: 220px;
+  margin-bottom: 14px;
+}
+.panel-head .buscador { margin-bottom: 0; }
+.buscador::placeholder { color: var(--text-dim); }
+
 .filters { display: flex; gap: 8px; }
 .chip {
   background: var(--panel-2);
@@ -347,5 +356,7 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .topbar-inner { flex-wrap: wrap; }
   .panel-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .panel-head-right { flex-direction: column; align-items: flex-start; width: 100%; }
+  .buscador, .panel-head .buscador { width: 100%; }
   th, td { padding: 10px 12px; }
 }

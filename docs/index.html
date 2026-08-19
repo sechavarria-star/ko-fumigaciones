@@ -49,10 +49,13 @@
     <div class="panel">
       <div class="panel-head">
         <h2>Clientes</h2>
-        <div class="filters" id="filters">
-          <button class="chip active" data-filter="todos">Todos</button>
-          <button class="chip" data-filter="pendiente">Con pendiente</button>
-          <button class="chip" data-filter="pagada">Al día</button>
+        <div class="panel-head-right">
+          <input type="search" id="buscar-clientes" class="buscador" placeholder="Buscar por cliente o CUIT…">
+          <div class="filters" id="filters">
+            <button class="chip active" data-filter="todos">Todos</button>
+            <button class="chip" data-filter="pendiente">Con pendiente</button>
+            <button class="chip" data-filter="pagada">Al día</button>
+          </div>
         </div>
       </div>
       <div class="table-wrap">
@@ -92,6 +95,7 @@
       <div class="panel-head"><h2>Facturas pendientes de validar</h2></div>
       <div class="admin-body">
         <p class="hint">Estas facturas vinieron del informe consolidado sin poder asociarse solas a un cliente. Confirmá el CUIT correcto para cada nombre - se aplica a todas las facturas de ese nombre de una.</p>
+        <input type="search" id="buscar-pendientes" class="buscador" placeholder="Buscar por nombre del informe…">
         <div id="pendientes-lista"></div>
       </div>
     </div>
@@ -111,7 +115,10 @@
     </div>
 
     <div class="panel">
-      <div class="panel-head"><h2>Consolidación pendiente</h2></div>
+      <div class="panel-head">
+        <h2>Consolidación pendiente</h2>
+        <input type="search" id="buscar-cola" class="buscador" placeholder="Buscar por cliente, factura o extracto…">
+      </div>
       <div class="admin-body">
         <div id="cola-consolidacion"><p class="hint">Todavía no hay coincidencias en la cola.</p></div>
       </div>
@@ -129,6 +136,7 @@
           <input name="direccion" placeholder="Dirección">
           <button type="submit">Guardar cliente</button>
         </form>
+        <input type="search" id="buscar-clientes-admin" class="buscador" placeholder="Buscar por CUIT o nombre…">
         <div class="table-wrap">
           <table id="tabla-clientes-admin">
             <thead><tr><th>CUIT</th><th>Nombre</th><th>Condición IVA</th></tr></thead>
@@ -155,6 +163,7 @@
           </select>
           <button type="submit">Guardar usuario</button>
         </form>
+        <input type="search" id="buscar-usuarios" class="buscador" placeholder="Buscar por nombre o email…">
         <div class="table-wrap">
           <table id="tabla-usuarios">
             <thead><tr><th>Nombre</th><th>Email</th><th>Perfil</th></tr></thead>
