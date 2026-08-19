@@ -1573,13 +1573,11 @@
     "numero": "0004-00001210",
     "fecha_emision": "06/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 53000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006629",
@@ -3281,13 +3279,11 @@
     "numero": "0004-00001240",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 53000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006765",
@@ -4993,13 +4989,11 @@
     "numero": "0004-00001266",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 58000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006905",
@@ -6747,13 +6741,11 @@
     "numero": "0004-00001296",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 58000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007047",
@@ -8519,13 +8511,11 @@
     "numero": "0004-00001327",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 58000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007186",
@@ -10233,13 +10223,11 @@
     "numero": "0004-00001353",
     "fecha_emision": "04/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 64000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007327",
@@ -12043,13 +12031,11 @@
     "numero": "0004-00001383",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "33700579919",
     "cliente_informe": "HIGH MEDIC GROUP S A - SUC. ARANGUREN 125",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 64000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33700579919",
-    "nombre_sugerido": "HIGH MEDIC GROUP S A"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007472",
