@@ -929,13 +929,11 @@
     "numero": "0004-00006583",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006584",
@@ -2641,13 +2639,11 @@
     "numero": "0004-00006720",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 35000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006721",
@@ -4325,13 +4321,11 @@
     "numero": "0004-00006860",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 38000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006861",
@@ -6021,13 +6015,11 @@
     "numero": "0004-00007001",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 38000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007002",
@@ -7755,13 +7747,11 @@
     "numero": "0004-00007139",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 38000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007140",
@@ -9435,13 +9425,11 @@
     "numero": "0004-00007279",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 41000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007280",
@@ -11199,13 +11187,11 @@
     "numero": "0004-00007424",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30681444307",
     "cliente_informe": "CONSORCIO: M. T. DE ALVEAR 2231",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 41000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30681444307",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS M T DE ALVEAR 2231 CAPITAL FEDERAL"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007425",
