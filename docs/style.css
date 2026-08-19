@@ -309,8 +309,9 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .lote-resumen table { font-size: 0.85rem; }
 .lote-resumen td, .lote-resumen th { padding: 8px 10px; white-space: normal; }
 .lote-resumen .archivo { color: var(--text-dim); font-size: 0.78rem; }
-.lote-acciones { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+.lote-acciones { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
 .lote-acciones .resumen-txt { color: var(--text-dim); font-size: 0.82rem; }
+.lote-acciones-top { margin-top: 0; margin-bottom: 14px; }
 
 #form-confirmar-pago { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
 #form-confirmar-pago label { display: flex; flex-direction: column; gap: 6px; font-size: 0.82rem; color: var(--text-dim); }

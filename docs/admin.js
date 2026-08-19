@@ -332,8 +332,33 @@ function renderPendientesLista() {
 // tener forma de aparecer en la cola. Para eso se guardan acá (en memoria
 // del navegador, no en ningún lado más) los PDFs de extracto ya subidos en
 // esta sesión, así se pueden volver a mandar a /parse con un solo clic.
-let COLA_CONSOLIDACION = [];
-let ULTIMOS_EXTRACTOS = []; // File[] ya subidos en esta sesión, para reintentar
+let ULTIMOS_EXTRACTOS = []; // File[] ya subidos en esta sesión, para reintentar (no sobrevive a un F5)
+
+// La cola de candidatos SÍ se guarda en localStorage (solo datos ya
+// derivados: cliente/factura/monto/fecha - nunca el texto del extracto) para
+// no perder el trabajo si se recarga la página sin haber apretado
+// "Consolidar" todavía.
+const COLA_STORAGE_KEY = "ko_cola_consolidacion_v1";
+
+function guardarColaEnStorage() {
+  try {
+    localStorage.setItem(COLA_STORAGE_KEY, JSON.stringify(COLA_CONSOLIDACION));
+  } catch (err) {
+    console.warn("No se pudo guardar la cola en localStorage:", err);
+  }
+}
+
+function cargarColaDeStorage() {
+  try {
+    const raw = localStorage.getItem(COLA_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.warn("No se pudo leer la cola guardada:", err);
+    return [];
+  }
+}
+
+let COLA_CONSOLIDACION = cargarColaDeStorage();
 
 document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivosExtracto([...e.target.files]));
 
@@ -359,6 +384,7 @@ async function procesarArchivosExtracto(files) {
         agregadas++;
       });
       const repetidas = resultado.matches.length - agregadas;
+      guardarColaEnStorage();
       draftEl.innerHTML = `<div class="draft-card">${file.name}: ${agregadas} coincidencia${agregadas === 1 ? "" : "s"} nueva${agregadas === 1 ? "" : "s"} agregada${agregadas === 1 ? "" : "s"} a la cola.${repetidas ? ` (${repetidas} ya estaba${repetidas === 1 ? "" : "n"} en la cola)` : ""}</div>`;
     } catch (err) {
       if (esSesionInvalida(err)) {
@@ -401,16 +427,16 @@ function renderColaConsolidacion() {
 
   el.innerHTML = `
     <div class="lote-resumen">
+      <div class="lote-acciones lote-acciones-top">
+        <button id="btn-consolidar">Consolidar ${COLA_CONSOLIDACION.length} pago${COLA_CONSOLIDACION.length === 1 ? "" : "s"}</button>
+        <button id="btn-vaciar-cola" type="button" class="btn-confirmar-pago">Vaciar cola</button>
+        ${reintentar}
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th></th><th>Cliente / Factura</th><th class="num">Monto</th><th>Movimiento</th><th>Fecha</th><th>Extracto</th></tr></thead>
           <tbody>${filas.join("")}</tbody>
         </table>
-      </div>
-      <div class="lote-acciones">
-        <button id="btn-consolidar">Consolidar ${COLA_CONSOLIDACION.length} pago${COLA_CONSOLIDACION.length === 1 ? "" : "s"}</button>
-        <button id="btn-vaciar-cola" type="button" class="btn-confirmar-pago">Vaciar cola</button>
-        ${reintentar}
       </div>
     </div>`;
 
@@ -426,6 +452,7 @@ function renderColaConsolidacion() {
 
   document.getElementById("btn-vaciar-cola").addEventListener("click", () => {
     COLA_CONSOLIDACION = [];
+    guardarColaEnStorage();
     renderColaConsolidacion();
   });
 
@@ -446,6 +473,7 @@ function renderColaConsolidacion() {
       resultado.confirmados.forEach(aplicarPagoLocal);
       const yaResueltas = new Set([...resultado.confirmados.map((p) => p.factura_numero), ...resultado.omitidos]);
       COLA_CONSOLIDACION = COLA_CONSOLIDACION.filter((m) => !yaResueltas.has(m.factura_numero));
+      guardarColaEnStorage();
       mostrarAviso(
         `Se consolidaron ${resultado.confirmados.length} pago${resultado.confirmados.length === 1 ? "" : "s"}.` +
           (resultado.omitidos.length ? ` ${resultado.omitidos.length} ya tenían pago registrado y se omitieron.` : ""),

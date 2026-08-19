@@ -97,6 +97,7 @@ function recomputar() {
   renderKpis();
   renderTabla();
   renderPendientesLista();
+  renderColaConsolidacion();
 
   // Si el modal de un cliente está abierto (por ej. se acaba de confirmar un
   // pago desde ahí), lo refrescamos contra los datos nuevos en vez de dejarlo
