@@ -34,7 +34,8 @@
 <main class="wrap" id="portal" hidden>
   <nav class="mainnav" id="mainnav">
     <button class="navitem active" data-page="tablero">Tablero</button>
-    <button class="navitem solo-editor" data-page="facturas" hidden>Facturas</button>
+    <button class="navitem solo-admin" data-page="facturas" hidden>Facturas</button>
+    <button class="navitem solo-editor" data-page="pendientes" hidden>Pendientes</button>
     <button class="navitem solo-editor" data-page="extractos" hidden>Extractos</button>
     <button class="navitem solo-editor" data-page="clientes" hidden>Clientes</button>
     <button class="navitem solo-admin" data-page="usuarios" hidden>Usuarios</button>
@@ -42,6 +43,7 @@
 
   <section class="page" id="page-tablero">
     <div class="meta" id="meta"></div>
+    <div id="pendientes-banner"></div>
     <div class="kpis" id="kpis"></div>
     <div class="panel">
       <div class="panel-head">
@@ -72,14 +74,24 @@
 
   <section class="page" id="page-facturas" hidden>
     <div class="panel">
-      <div class="panel-head"><h2>Subir facturas</h2></div>
+      <div class="panel-head"><h2>Informe consolidado de facturas</h2></div>
       <div class="admin-body">
-        <p class="hint">Subí uno o varios PDF de factura a la vez (carga masiva). El número de factura es la clave única - si ya existe, se omite. El CUIT del cliente tiene que existir ya en la sección Clientes.</p>
-        <label class="dropzone" id="dropzone-facturas" for="input-facturas">
-          <span>Arrastrá los PDF acá, o hacé clic para elegirlos</span>
-          <input type="file" id="input-facturas" accept="application/pdf" multiple hidden>
+        <p class="hint">Subí el informe general de ventas que exporta el sistema de facturación (un PDF con todos los comprobantes del período). <strong>Reemplaza por completo la base de facturas y pagos actual</strong> - subilo una vez por mes, con el rango de fechas más al día que tengas. El informe no trae CUIT, así que los clientes que no se puedan asociar automáticamente quedan pendientes de validar.</p>
+        <label class="dropzone" id="dropzone-informe" for="input-informe">
+          <span>Arrastrá el PDF del informe acá, o hacé clic para elegirlo</span>
+          <input type="file" id="input-informe" accept="application/pdf" hidden>
         </label>
-        <div id="facturas-draft"></div>
+        <div id="informe-draft"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-pendientes" hidden>
+    <div class="panel">
+      <div class="panel-head"><h2>Facturas pendientes de validar</h2></div>
+      <div class="admin-body">
+        <p class="hint">Estas facturas vinieron del informe consolidado sin poder asociarse solas a un cliente. Confirmá el CUIT correcto para cada nombre - se aplica a todas las facturas de ese nombre de una.</p>
+        <div id="pendientes-lista"></div>
       </div>
     </div>
   </section>

@@ -9,6 +9,7 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 
 import github_store
+import informe_parser
 import pdf_extract
 
 logger = logging.getLogger("uvicorn.error")
@@ -117,101 +118,100 @@ def confirmar_pago(body: dict, authorization: str | None = Header(None)):
     return pago
 
 
-# --- 2) subir factura (admin, supervisor) ---
-@app.post("/api/facturas/parse")
-async def parse_factura(file: UploadFile, authorization: str | None = Header(None)):
+# --- 2) informe consolidado mensual de facturas ---
+# Reemplaza a la carga de facturas una por una: KO exporta un único PDF con
+# todos los comprobantes del período (sin CUIT, solo nombre de cliente en
+# texto libre), y esto lo matchea contra Clientes automáticamente donde puede.
+# Es DESTRUCTIVO (pisa toda la base de facturas y pagos) - por eso queda
+# restringido a admin, con el frontend pidiendo confirmación explícita antes
+# de llamarlo.
+@app.post("/api/facturas/importar-informe")
+async def importar_informe(file: UploadFile, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
-    requerir_perfil(usuario, "admin", "supervisor")
+    requerir_perfil(usuario, "admin")
     try:
         texto = pdf_extract.extraer_texto(await file.read())
     except RuntimeError as exc:
         raise HTTPException(422, str(exc))
-    draft = pdf_extract.parse_factura(texto)
+
+    registros = informe_parser.parse_informe(texto)
+    if not registros:
+        raise HTTPException(422, "No se pudo leer ningún comprobante en ese PDF")
 
     clientes, _ = github_store.get_json("data/clientes.json")
-    cuit = draft.get("cuit_cliente")
-    cliente = clientes.get(cuit) if cuit else None
+    informe_parser.matchear_clientes(registros, clientes)
 
-    return {
-        **draft,
-        "cuit_encontrado": cliente is not None,
-        "nombre_cliente": cliente["nombre"] if cliente else None,
-    }
-
-
-def _armar_factura(body: dict) -> dict:
-    for campo in ["numero", "fecha_emision", "cuit_cliente", "total"]:
-        if not body.get(campo):
-            raise ValueError(f"Falta el campo {campo}")
-    dia, mes, anio = body["fecha_emision"].split("/")
-    return {
-        "numero": body["numero"],
-        "fecha_emision": body["fecha_emision"],
-        "cuit_cliente": body["cuit_cliente"],
-        "detalle": body.get("detalle") or "",
-        "total": float(body["total"]),
-        "periodo": f"{anio}-{mes}",
-    }
-
-
-@app.post("/api/facturas/guardar")
-def guardar_factura(body: dict, authorization: str | None = Header(None)):
-    usuario = usuario_autorizado(authorization)
-    requerir_perfil(usuario, "admin", "supervisor")
-    try:
-        factura = _armar_factura(body)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc))
-
-    facturas, _ = github_store.get_json("data/facturas.json")
-    if any(f["numero"] == factura["numero"] for f in facturas):
-        raise HTTPException(409, "Ya existe una factura con ese número")
-
-    facturas.append(factura)
-    github_store.put_json(
-        "data/facturas.json", facturas, f"Agrega factura {factura['numero']} ({usuario['email']})", usuario["email"]
-    )
-    return factura
-
-
-# Carga masiva: el número de factura es la clave única. Un solo commit para
-# todo el lote en vez de uno por factura (más rápido y no ensucia el historial
-# con decenas de commits cuando se sube un mes entero de una).
-@app.post("/api/facturas/guardar-lote")
-def guardar_facturas_lote(body: dict, authorization: str | None = Header(None)):
-    usuario = usuario_autorizado(authorization)
-    requerir_perfil(usuario, "admin", "supervisor")
-    entradas = body.get("facturas", [])
-    if not isinstance(entradas, list) or not entradas:
-        raise HTTPException(400, "No se mandó ninguna factura")
-
-    facturas, _ = github_store.get_json("data/facturas.json")
-    existentes = {f["numero"] for f in facturas}
-
-    guardadas = []
-    omitidas = []
-    for entrada in entradas:
-        numero = entrada.get("numero")
-        try:
-            factura = _armar_factura(entrada)
-        except ValueError as exc:
-            omitidas.append({"numero": numero, "motivo": str(exc)})
-            continue
-        if factura["numero"] in existentes:
-            omitidas.append({"numero": factura["numero"], "motivo": "ya existe (número repetido)"})
-            continue
+    facturas = []
+    for r in registros:
+        factura = {
+            "numero": r["numero"],
+            "fecha_emision": r["fecha_emision"],
+            "periodo": r["periodo"],
+            "cuit_cliente": r["cuit_cliente"],
+            "cliente_informe": r["cliente_informe"],
+            "detalle": r["detalle"],
+            "total": r["total"],
+            "tipo": r["tipo"],
+        }
+        if r.get("cuit_sugerido"):
+            factura["cuit_sugerido"] = r["cuit_sugerido"]
+            factura["nombre_sugerido"] = r["nombre_sugerido"]
         facturas.append(factura)
-        existentes.add(factura["numero"])
-        guardadas.append(factura)
 
-    if guardadas:
-        github_store.put_json(
-            "data/facturas.json",
-            facturas,
-            f"Carga masiva: agrega {len(guardadas)} factura(s) ({usuario['email']})",
-            usuario["email"],
-        )
-    return {"guardadas": guardadas, "omitidas": omitidas}
+    github_store.put_json(
+        "data/facturas.json",
+        facturas,
+        f"Importa informe consolidado ({file.filename}): reemplaza toda la base por {len(facturas)} comprobante(s) ({usuario['email']})",
+        usuario["email"],
+    )
+    github_store.put_json(
+        "data/pagos.json",
+        [],
+        f"Vacía pagos.json por importación de informe consolidado ({usuario['email']})",
+        usuario["email"],
+    )
+
+    pendientes = sum(1 for f in facturas if not f["cuit_cliente"])
+    return {"total": len(facturas), "matcheadas": len(facturas) - pendientes, "pendientes": pendientes}
+
+
+# Resuelve a mano las facturas que el matcheo automático dejó sin CUIT -
+# aplica el mismo CUIT a TODAS las que compartan el mismo cliente_informe
+# (texto crudo del nombre en el informe), no una por una.
+@app.post("/api/facturas/confirmar-cuit")
+def confirmar_cuit_pendiente(body: dict, authorization: str | None = Header(None)):
+    usuario = usuario_autorizado(authorization)
+    requerir_perfil(usuario, "admin", "supervisor")
+    cliente_informe = body.get("cliente_informe")
+    cuit = body.get("cuit_cliente", "")
+    if not cliente_informe:
+        raise HTTPException(400, "Falta cliente_informe")
+    if not (cuit.isdigit() and len(cuit) == 11):
+        raise HTTPException(400, "El CUIT tiene que tener 11 dígitos")
+
+    clientes, _ = github_store.get_json("data/clientes.json")
+    if cuit not in clientes:
+        raise HTTPException(400, "Ese CUIT no está cargado en Clientes - agregalo ahí primero")
+
+    facturas, _ = github_store.get_json("data/facturas.json")
+    resueltas = []
+    for f in facturas:
+        if f.get("cliente_informe") == cliente_informe and not f.get("cuit_cliente"):
+            f["cuit_cliente"] = cuit
+            f.pop("cuit_sugerido", None)
+            f.pop("nombre_sugerido", None)
+            resueltas.append(f)
+
+    if not resueltas:
+        raise HTTPException(404, "No hay facturas pendientes con ese nombre")
+
+    github_store.put_json(
+        "data/facturas.json",
+        facturas,
+        f"Confirma CUIT {cuit} para '{cliente_informe}' -> {len(resueltas)} factura(s) ({usuario['email']})",
+        usuario["email"],
+    )
+    return {"resueltas": resueltas}
 
 
 # --- 3) subir extracto (admin, supervisor; no se persiste el texto crudo) ---
@@ -233,7 +233,10 @@ async def parse_extracto(file: UploadFile, authorization: str | None = Header(No
     facturas, _ = github_store.get_json("data/facturas.json")
     pagos, _ = github_store.get_json("data/pagos.json")
     cuits_ya_pagados = {p["factura_numero"] for p in pagos}
-    pendientes = [f for f in facturas if f["numero"] not in cuits_ya_pagados]
+    # Las facturas pendientes de validar (sin CUIT, ver /importar-informe)
+    # todavía no tienen con qué CUIT buscar en el extracto - se excluyen acá,
+    # no por rechazo sino porque literalmente no hay nada que matchear.
+    pendientes = [f for f in facturas if f["numero"] not in cuits_ya_pagados and f.get("cuit_cliente")]
 
     matches = []
     for f in pendientes:

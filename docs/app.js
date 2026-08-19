@@ -8,6 +8,7 @@ let CLIENTES = {};
 let FACTURAS = [];
 let PAGOS = [];
 let CLIENTES_VIEW = [];
+let PENDIENTES_VALIDAR = []; // facturas del informe sin CUIT asociado, agrupadas por cliente_informe
 let filtroActual = "todos";
 // El perfil (admin/supervisor/usuario) lo decide el backend, nunca el propio
 // navegador - esto es solo para mostrar/ocultar botones. Los permisos reales
@@ -32,8 +33,29 @@ async function cargarDatosAutenticado() {
 function recomputar() {
   const pagoPorFactura = new Map(PAGOS.map((p) => [p.factura_numero, p]));
   const porCliente = new Map();
+  const porValidar = new Map();
 
   for (const f of FACTURAS) {
+    // Las facturas que vinieron del informe consolidado sin poder asociarse
+    // solas a un cliente no tienen CUIT todavía - no entran a ningún cliente,
+    // van aparte a un cajón "pendientes de validar" (ver renderPendientesBanner).
+    if (!f.cuit_cliente) {
+      const clave = f.cliente_informe || "(sin nombre)";
+      if (!porValidar.has(clave)) {
+        porValidar.set(clave, {
+          cliente_informe: clave,
+          cuit_sugerido: f.cuit_sugerido || null,
+          nombre_sugerido: f.nombre_sugerido || null,
+          count: 0,
+          total: 0,
+        });
+      }
+      const g = porValidar.get(clave);
+      g.count += 1;
+      g.total += f.total;
+      continue;
+    }
+
     const pago = pagoPorFactura.get(f.numero) || null;
     const estado = pago ? "pagada" : "pendiente";
     const info = CLIENTES[f.cuit_cliente] || { nombre: "(cliente no encontrado en Clientes)" };
@@ -43,6 +65,8 @@ function recomputar() {
     }
     porCliente.get(f.cuit_cliente).facturas.push({ ...f, estado, pago });
   }
+
+  PENDIENTES_VALIDAR = [...porValidar.values()].sort((a, b) => b.total - a.total);
 
   const resumen = {
     cantidad_facturas: FACTURAS.length,
@@ -60,15 +84,19 @@ function recomputar() {
     resumen.total_cobrado += total_pagado;
     resumen.total_pendiente += total_facturado - total_pagado;
     resumen.cantidad_pagadas += c.facturas.filter((f) => f.estado === "pagada").length;
-    resumen.cantidad_pendientes += c.facturas.filter((f) => f.estado === "pendiente").length;
+    // Las notas de crédito (total negativo) no son algo que alguien vaya a
+    // pagar - no cuentan como "factura pendiente" aunque nunca tengan pago.
+    resumen.cantidad_pendientes += c.facturas.filter((f) => f.estado === "pendiente" && f.total >= 0).length;
     return { ...c, total_facturado, total_pagado, total_pendiente: total_facturado - total_pagado };
   });
   CLIENTES_VIEW.sort((a, b) => b.total_pendiente - a.total_pendiente);
 
   RESUMEN = resumen;
   renderMeta();
+  renderPendientesBanner();
   renderKpis();
   renderTabla();
+  renderPendientesLista();
 
   // Si el modal de un cliente está abierto (por ej. se acaba de confirmar un
   // pago desde ahí), lo refrescamos contra los datos nuevos en vez de dejarlo
@@ -90,6 +118,22 @@ function renderMeta() {
   const el = document.getElementById("meta");
   const periodos = [...new Set(FACTURAS.map((f) => f.periodo))].sort();
   el.textContent = `Períodos facturados: ${periodos.join(", ") || "—"} · ${Object.keys(CLIENTES).length} clientes en la base · ${FACTURAS.length} facturas cargadas`;
+}
+
+function renderPendientesBanner() {
+  const el = document.getElementById("pendientes-banner");
+  if (!PENDIENTES_VALIDAR.length) {
+    el.innerHTML = "";
+    return;
+  }
+  const cantidad = PENDIENTES_VALIDAR.reduce((s, p) => s + p.count, 0);
+  const total = PENDIENTES_VALIDAR.reduce((s, p) => s + p.total, 0);
+  el.innerHTML = `
+    <div class="pendientes-banner">
+      <span>${cantidad} factura${cantidad === 1 ? "" : "s"} (${PENDIENTES_VALIDAR.length} cliente${PENDIENTES_VALIDAR.length === 1 ? "" : "s"}) pendiente${cantidad === 1 ? "" : "s"} de validar · ${fmtMoney(total)} sin asignar a ningún cliente</span>
+      ${puedeEscribir() ? `<button id="btn-ir-pendientes" type="button">Resolver</button>` : ""}
+    </div>`;
+  document.getElementById("btn-ir-pendientes")?.addEventListener("click", () => window.irAPagina("pendientes"));
 }
 
 function renderKpis() {
@@ -200,7 +244,8 @@ function renderModal() {
     <div class="timeline">
       ${filas
         .map((f) => {
-          let pagoInfo = "Sin pago registrado";
+          const esNotaCredito = f.tipo === "NC" || f.total < 0;
+          let pagoInfo = esNotaCredito ? "Nota de crédito" : "Sin pago registrado";
           if (f.pago) {
             pagoInfo =
               f.pago.origen === "manual"
@@ -208,20 +253,20 @@ function renderModal() {
                 : `Detectado en extracto de ${f.pago.extracto}${f.pago.fecha_aprox ? " · " + f.pago.fecha_aprox : ""}`;
           }
           const accionConfirmar =
-            f.estado === "pendiente" && puedeEscribir()
+            f.estado === "pendiente" && !esNotaCredito && puedeEscribir()
               ? `<button class="btn-confirmar-pago" data-factura="${f.numero}" data-cuit="${cliente.cuit}" data-monto="${f.total}">Confirmar pago manual</button>`
               : "";
           return `
             <div class="timeline-item">
               <div class="timeline-dot ${f.estado === "pagada" ? "pagada" : ""}"></div>
               <div class="timeline-fecha">${f.fecha_emision}</div>
-              <div class="detalle">${f.detalle} <span class="num-fact">· FC ${f.numero}</span></div>
+              <div class="detalle">${f.detalle} <span class="num-fact">· ${esNotaCredito ? "NC" : "FC"} ${f.numero}</span></div>
               <div class="timeline-cuenta">
                 <div><span class="k">Debe</span>${fmtMoney(f.total)}</div>
                 <div><span class="k">Haber</span>${f.haber ? fmtMoney(f.haber) : "—"}</div>
                 <div><span class="k">Saldo</span>${fmtMoney(f.saldo)}</div>
               </div>
-              <div class="pago-info ${f.estado === "pagada" ? "ok-text" : "warn-text"}">${pagoInfo}</div>
+              <div class="pago-info ${esNotaCredito ? "" : f.estado === "pagada" ? "ok-text" : "warn-text"}">${pagoInfo}</div>
               ${accionConfirmar}
             </div>
           `;
@@ -267,10 +312,6 @@ document.getElementById("filters").addEventListener("click", (e) => {
 // para reflejar el cambio al toque sin esperar a que GitHub Pages redepliegue.
 function aplicarPagoLocal(pago) {
   PAGOS.push(pago);
-  recomputar();
-}
-function aplicarFacturaLocal(factura) {
-  FACTURAS.push(factura);
   recomputar();
 }
 function aplicarClienteLocal(cuit, info) {

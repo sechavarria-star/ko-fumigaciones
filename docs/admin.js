@@ -227,144 +227,93 @@ document.getElementById("form-confirmar-pago").addEventListener("submit", async 
   }
 });
 
-// --- 2) subir facturas (una o muchas de una: carga masiva, número de
-// factura como clave única) ---
-let LOTE_FACTURAS = []; // [{archivo, draft, estado: "ok"|"error", motivo}]
+// --- 2) informe consolidado de facturas ---
+// Reemplaza a la carga de facturas una por una: KO exporta un único PDF con
+// todos los comprobantes del período (sin CUIT). Es DESTRUCTIVO - pisa toda
+// la base de facturas y pagos - por eso pide confirmación explícita acá y
+// queda restringido a admin en el backend.
+document.getElementById("input-informe").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (file) subirInformeConsolidado(file);
+});
+wireDropzone("dropzone-informe", (archivos) => archivos[0] && subirInformeConsolidado(archivos[0]));
 
-document.getElementById("input-facturas").addEventListener("change", (e) => procesarArchivosFacturas([...e.target.files]));
-
-// Se procesan varios PDFs a la vez (en vez de uno por uno) para no esperar
-// un viaje de red + OCR completo por archivo antes de arrancar el próximo -
-// con facturas escaneadas eso hacía que un lote de 48 tardara varios
-// minutos. CONCURRENCIA=5 para no saturar el free tier de Render.
-const CONCURRENCIA_FACTURAS = 5;
-
-async function procesarArchivosFacturas(files) {
-  if (!files.length) return;
-  const draftEl = document.getElementById("facturas-draft");
-  LOTE_FACTURAS = new Array(files.length);
-  const numerosDelLote = new Set();
-  let procesados = 0;
-  let sesionExpirada = false;
-
-  async function procesarUno(i) {
-    if (sesionExpirada) return;
-    const file = files[i];
-    const fd = new FormData();
-    fd.append("file", file);
-    try {
-      const draft = await llamarBackend("/api/facturas/parse", { method: "POST", body: fd });
-      let estado = "ok";
-      let motivo = "";
-      if (!draft.cuit_encontrado) {
-        estado = "error";
-        motivo = `CUIT ${draft.cuit_cliente || "?"} no está en Clientes`;
-      } else if (FACTURAS.some((f) => f.numero === draft.numero)) {
-        estado = "error";
-        motivo = "Ya existe una factura con ese número";
-      } else if (numerosDelLote.has(draft.numero)) {
-        estado = "error";
-        motivo = "Repetida dentro de este mismo lote";
-      }
-      if (estado === "ok") numerosDelLote.add(draft.numero);
-      LOTE_FACTURAS[i] = { archivo: file.name, draft, estado, motivo };
-    } catch (err) {
-      if (esSesionInvalida(err)) {
-        sesionExpirada = true;
-        return;
-      }
-      LOTE_FACTURAS[i] = { archivo: file.name, draft: null, estado: "error", motivo: err.message };
-    }
-    procesados++;
-    draftEl.innerHTML = `<div class="draft-card">Leyendo PDFs… ${procesados} de ${files.length}</div>`;
-  }
-
-  let siguiente = 0;
-  async function worker() {
-    while (siguiente < files.length && !sesionExpirada) {
-      const i = siguiente++;
-      await procesarUno(i);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCIA_FACTURAS, files.length) }, worker));
-
-  if (sesionExpirada) {
-    cerrarSesion(
-      `Tu sesión de Google expiró mientras subías las facturas (se llegó a procesar ${procesados} de ${files.length}). Volvé a iniciar sesión y subí el resto.`
-    );
+async function subirInformeConsolidado(file) {
+  const draftEl = document.getElementById("informe-draft");
+  const confirmado = window.confirm(
+    `Vas a reemplazar TODA la base de facturas y pagos actual (${FACTURAS.length} factura(s), ${PAGOS.length} pago(s)) por lo que traiga "${file.name}". Esto no se puede deshacer. ¿Confirmás?`
+  );
+  if (!confirmado) {
+    document.getElementById("input-informe").value = "";
     return;
   }
-  LOTE_FACTURAS = LOTE_FACTURAS.filter(Boolean);
-  renderLoteFacturas(draftEl);
+
+  draftEl.innerHTML = `<div class="draft-card">Leyendo el informe y matcheando clientes… puede tardar un minuto.</div>`;
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const resultado = await llamarBackend("/api/facturas/importar-informe", { method: "POST", body: fd });
+    draftEl.innerHTML = `<div class="draft-card">Importadas ${resultado.total} factura(s): ${resultado.matcheadas} asociada(s) a un cliente automáticamente, ${resultado.pendientes} pendiente(s) de validar${resultado.pendientes ? " (revisalas en la pestaña Pendientes)" : ""}.</div>`;
+    document.getElementById("input-informe").value = "";
+    COLA_CONSOLIDACION = [];
+    await cargarDatosAutenticado();
+    mostrarAviso(`Informe importado: ${resultado.total} factura(s), ${resultado.pendientes} pendiente(s) de validar.`, "ok");
+  } catch (err) {
+    avisarError(err, "No se pudo importar el informe: ");
+    draftEl.innerHTML = "";
+  }
 }
 
-function renderLoteFacturas(draftEl) {
-  const ok = LOTE_FACTURAS.filter((it) => it.estado === "ok").length;
-  const filas = LOTE_FACTURAS.map((it, i) => {
-    if (it.estado === "error") {
-      return `<tr>
-        <td class="archivo">${it.archivo}</td>
-        <td colspan="3" class="warn-text">${it.motivo}</td>
-        <td></td>
-      </tr>`;
-    }
-    const d = it.draft;
-    return `<tr>
-      <td><input type="checkbox" data-idx="${i}" class="chk-factura" checked></td>
-      <td>${d.numero}<div class="archivo">${it.archivo}</div></td>
-      <td>${d.nombre_cliente}</td>
-      <td class="num">${fmtMoney(d.total)}</td>
-      <td><span class="badge ok">Listo</span></td>
-    </tr>`;
-  });
-
-  draftEl.innerHTML = `
-    <div class="lote-resumen">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th></th><th>Factura</th><th>Cliente</th><th class="num">Total</th><th>Estado</th></tr></thead>
-          <tbody>${filas.join("")}</tbody>
-        </table>
+// --- 3) facturas pendientes de validar (el informe no trae CUIT y el
+// matcheo automático no encontró un cliente con confianza suficiente) ---
+function renderPendientesLista() {
+  const el = document.getElementById("pendientes-lista");
+  if (!PENDIENTES_VALIDAR.length) {
+    el.innerHTML = `<p class="hint">No hay facturas pendientes de validar.</p>`;
+    return;
+  }
+  el.innerHTML = PENDIENTES_VALIDAR.map(
+    (p, i) => `
+    <div class="pendiente-item">
+      <div>
+        <div class="pendiente-nombre">${p.cliente_informe}</div>
+        <div class="k">${p.count} factura${p.count === 1 ? "" : "s"} · ${fmtMoney(p.total)}${p.nombre_sugerido ? ` · ¿será "${p.nombre_sugerido}"?` : ""}</div>
       </div>
-      <div class="lote-acciones">
-        <button id="btn-guardar-lote" ${ok === 0 ? "disabled" : ""}>Guardar ${ok} factura${ok === 1 ? "" : "s"}</button>
-        <span class="resumen-txt">${LOTE_FACTURAS.length - ok} con problema (no se van a guardar)</span>
-      </div>
-    </div>`;
+      <form class="form-confirmar-cuit" data-idx="${i}">
+        <input name="cuit" placeholder="CUIT (11 dígitos)" maxlength="11" value="${p.cuit_sugerido || ""}" required>
+        <button type="submit">Confirmar</button>
+      </form>
+    </div>`
+  ).join("");
 
-  const actualizarBotonLote = () => {
-    const n = draftEl.querySelectorAll(".chk-factura:checked").length;
-    const btn = document.getElementById("btn-guardar-lote");
-    btn.disabled = n === 0;
-    btn.textContent = `Guardar ${n} factura${n === 1 ? "" : "s"}`;
-  };
-  draftEl.querySelectorAll(".chk-factura").forEach((chk) => chk.addEventListener("change", actualizarBotonLote));
-
-  document.getElementById("btn-guardar-lote")?.addEventListener("click", async (e) => {
-    const btn = e.target;
-    const seleccionadas = [...draftEl.querySelectorAll(".chk-factura:checked")].map(
-      (chk) => LOTE_FACTURAS[Number(chk.dataset.idx)].draft
-    );
-    if (!seleccionadas.length) return;
-    btn.disabled = true;
-    btn.textContent = "Guardando…";
-    try {
-      const resultado = await llamarBackend("/api/facturas/guardar-lote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ facturas: seleccionadas }),
-      });
-      resultado.guardadas.forEach(aplicarFacturaLocal);
-      const omitidasTxt = resultado.omitidas.length
-        ? ` · ${resultado.omitidas.length} omitida(s): ${resultado.omitidas.map((o) => `${o.numero} (${o.motivo})`).join(", ")}`
-        : "";
-      draftEl.innerHTML = `<div class="draft-card">Se guardaron ${resultado.guardadas.length} factura(s).${omitidasTxt}</div>`;
-      document.getElementById("input-facturas").value = "";
-    } catch (err) {
-      avisarError(err, "No se pudo guardar el lote: ");
-      btn.disabled = false;
-      btn.textContent = `Guardar ${seleccionadas.length} factura${seleccionadas.length === 1 ? "" : "s"}`;
-    }
+  el.querySelectorAll(".form-confirmar-cuit").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const p = PENDIENTES_VALIDAR[Number(form.dataset.idx)];
+      const cuit = new FormData(form).get("cuit").trim();
+      if (!/^\d{11}$/.test(cuit)) {
+        mostrarAviso("El CUIT tiene que tener 11 dígitos, sin guiones.", "error");
+        return;
+      }
+      const btn = form.querySelector("button");
+      btn.disabled = true;
+      try {
+        const resultado = await llamarBackend("/api/facturas/confirmar-cuit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cliente_informe: p.cliente_informe, cuit_cliente: cuit }),
+        });
+        resultado.resueltas.forEach((factura) => {
+          const idx = FACTURAS.findIndex((f) => f.numero === factura.numero);
+          if (idx !== -1) FACTURAS[idx] = factura;
+        });
+        mostrarAviso(`"${p.cliente_informe}" asociado a ${resultado.resueltas.length} factura(s).`, "ok");
+        recomputar();
+      } catch (err) {
+        avisarError(err, "No se pudo confirmar: ");
+        btn.disabled = false;
+      }
+    });
   });
 }
 
@@ -612,7 +561,6 @@ function wireDropzone(zoneId, onFiles) {
   });
 }
 
-wireDropzone("dropzone-facturas", procesarArchivosFacturas);
 wireDropzone("dropzone-extracto", procesarArchivosExtracto);
 
 window.addEventListener("load", initGoogleSignIn);

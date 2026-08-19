@@ -18,7 +18,6 @@ import requests
 
 logger = logging.getLogger("uvicorn.error")
 
-KO_CUIT = "20209566061"
 GOOGLE_VISION_API_KEY = os.environ.get("GOOGLE_VISION_API_KEY")
 VISION_API_URL = "https://vision.googleapis.com/v1/images:annotate"
 
@@ -97,23 +96,6 @@ def _ocr_imagen(png_bytes: bytes) -> str:
 
 def parse_amount(s: str) -> float:
     return float(s.replace(".", "").replace(",", "."))
-
-
-def parse_factura(texto: str) -> dict:
-    numero_m = re.search(r"FACTURA\s*N[°ºOo]?\s*([\d\-]+)", texto)
-    fecha_m = re.search(r"Fecha de emisi[oó]n:\s*(\d{2}/\d{2}/\d{4})", texto)
-    cuits = re.findall(r"CUIT:\s*(\d{2}-\d{8}-\d)", texto)
-    cuit_cliente = next((c.replace("-", "") for c in cuits if c.replace("-", "") != KO_CUIT), None)
-    detalle_m = re.search(r"(FUMIGACI[ÓO]N.+?)(?:SON PESOS|R[ée]gimen de Transparencia)", texto, re.DOTALL)
-    totales = re.findall(r"TOTAL\s*\$\s*([\d\.]+,\d{2})", texto)
-
-    return {
-        "numero": numero_m.group(1) if numero_m else None,
-        "fecha_emision": fecha_m.group(1) if fecha_m else None,
-        "cuit_cliente": cuit_cliente,
-        "detalle": " ".join(detalle_m.group(1).split()) if detalle_m else None,
-        "total": parse_amount(totales[-1]) if totales else None,
-    }
 
 
 def cuit_pattern(cuit: str) -> re.Pattern:
