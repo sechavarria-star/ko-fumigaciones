@@ -1333,13 +1333,11 @@
     "numero": "0004-00001203",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 52000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006615",
@@ -3049,13 +3047,11 @@
     "numero": "0004-00001234",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 52000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006752",
@@ -4737,13 +4733,11 @@
     "numero": "0004-00001260",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 52000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006892",
@@ -6437,13 +6431,11 @@
     "numero": "0004-00001288",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 52000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007033",
@@ -8175,13 +8167,11 @@
     "numero": "0004-00001319",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 52000.01,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007171",
@@ -9859,13 +9849,11 @@
     "numero": "0004-00001345",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 57000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007311",
@@ -11627,13 +11615,11 @@
     "numero": "0004-00001375",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "20249110591",
     "cliente_informe": "PABLO ANDRES RESTITUTO (OLA 1743)",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 57000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "20249110591",
-    "nombre_sugerido": "RESTITUTO PABLO ANDRES"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007456",
