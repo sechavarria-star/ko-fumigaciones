@@ -765,13 +765,11 @@
     "numero": "0004-00006568",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 55500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006569",
@@ -2495,13 +2493,11 @@
     "numero": "0004-00006704",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 55500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006705",
@@ -4209,13 +4205,11 @@
     "numero": "0004-00006844",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 60000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006845",
@@ -5935,13 +5929,11 @@
     "numero": "0004-00006985",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 60000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006986",
@@ -7699,13 +7691,11 @@
     "numero": "0004-00007123",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 60000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007124",
@@ -9417,13 +9407,11 @@
     "numero": "0004-00007263",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 65000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007264",
@@ -11209,13 +11197,11 @@
     "numero": "0004-00007408",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "33562639859",
     "cliente_informe": "CONSORCIO: CORONEL DIAZ 1547",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 65000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "33562639859",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS AVDA. CNEL. DIAZ 1547"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007409",
