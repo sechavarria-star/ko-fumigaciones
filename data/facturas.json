@@ -543,13 +543,11 @@
     "numero": "0004-00006549",
     "fecha_emision": "05/01/2026",
     "periodo": "2026-01",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ENERO",
     "total": 89500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006550",
@@ -2235,13 +2233,11 @@
     "numero": "0004-00006685",
     "fecha_emision": "05/02/2026",
     "periodo": "2026-02",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO FEBRERO",
     "total": 89500.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006686",
@@ -3907,13 +3903,11 @@
     "numero": "0004-00006825",
     "fecha_emision": "06/03/2026",
     "periodo": "2026-03",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MARZO",
     "total": 97000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006826",
@@ -5589,13 +5583,11 @@
     "numero": "0004-00006966",
     "fecha_emision": "06/04/2026",
     "periodo": "2026-04",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO ABRIL",
     "total": 97000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00006967",
@@ -7311,13 +7303,11 @@
     "numero": "0004-00007104",
     "fecha_emision": "04/05/2026",
     "periodo": "2026-05",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO MAYO",
     "total": 97000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007105",
@@ -8993,13 +8983,11 @@
     "numero": "0004-00007244",
     "fecha_emision": "02/06/2026",
     "periodo": "2026-06",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JUNIO",
     "total": 106000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007245",
@@ -10745,13 +10733,11 @@
     "numero": "0004-00007389",
     "fecha_emision": "06/07/2026",
     "periodo": "2026-07",
-    "cuit_cliente": null,
+    "cuit_cliente": "30534263070",
     "cliente_informe": "CONSORCIO: SANTA FE 931",
     "detalle": "FUMIGACIÓN INTEGRAL - ABONO JULIO",
     "total": 106000.0,
-    "tipo": "FC",
-    "cuit_sugerido": "30711711720",
-    "nombre_sugerido": "CONSORCIO DE PROPIETARIOS PALERMO VIEW"
+    "tipo": "FC"
   },
   {
     "numero": "0004-00007390",
