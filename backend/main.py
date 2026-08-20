@@ -91,31 +91,27 @@ def requerir_perfil(usuario: dict, *perfiles_permitidos: str) -> None:
 def confirmar_pago(body: dict, authorization: str | None = Header(None)):
     usuario = usuario_autorizado(authorization)
     requerir_perfil(usuario, "admin", "supervisor")
-    pagos, _ = github_store.get_json("data/pagos.json")
 
-    if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
-        raise HTTPException(409, "Esa factura ya tiene un pago registrado")
+    def transformar(pagos):
+        if any(p["factura_numero"] == body["factura_numero"] for p in pagos):
+            raise HTTPException(409, "Esa factura ya tiene un pago registrado")
+        pago = {
+            "factura_numero": body["factura_numero"],
+            "cuit_cliente": body["cuit_cliente"],
+            "monto": None,
+            "origen": "manual",
+            "extracto": None,
+            "tipo_movimiento": None,
+            "fecha_aprox": None,
+            "numero_transaccion": body["numero_transaccion"],
+            "confirmado_por": usuario["email"],
+            "fecha_confirmacion": body["fecha_ingreso"],
+        }
+        pagos.append(pago)
+        mensaje = f"Confirma pago manual FC {body['factura_numero']} ({usuario['email']})"
+        return pagos, mensaje, pago
 
-    pago = {
-        "factura_numero": body["factura_numero"],
-        "cuit_cliente": body["cuit_cliente"],
-        "monto": None,
-        "origen": "manual",
-        "extracto": None,
-        "tipo_movimiento": None,
-        "fecha_aprox": None,
-        "numero_transaccion": body["numero_transaccion"],
-        "confirmado_por": usuario["email"],
-        "fecha_confirmacion": body["fecha_ingreso"],
-    }
-    pagos.append(pago)
-    github_store.put_json(
-        "data/pagos.json",
-        pagos,
-        f"Confirma pago manual FC {body['factura_numero']} ({usuario['email']})",
-        usuario["email"],
-    )
-    return pago
+    return github_store.put_json_con_reintento("data/pagos.json", transformar, usuario["email"])
 
 
 # --- 2) informe consolidado mensual de facturas ---
@@ -144,51 +140,47 @@ async def importar_informe(file: UploadFile, authorization: str | None = Header(
     clientes, _ = github_store.get_json("data/clientes.json")
     informe_parser.matchear_clientes(registros, clientes)
 
-    facturas_actuales, _ = github_store.get_json("data/facturas.json")
-    por_numero = {f["numero"]: f for f in facturas_actuales}
+    def transformar(facturas_actuales):
+        por_numero = {f["numero"]: f for f in facturas_actuales}
+        agregadas = 0
+        actualizadas = 0
+        for r in registros:
+            anterior = por_numero.get(r["numero"])
+            factura = {
+                "numero": r["numero"],
+                "fecha_emision": r["fecha_emision"],
+                "periodo": r["periodo"],
+                "cuit_cliente": r["cuit_cliente"],
+                "cliente_informe": r["cliente_informe"],
+                "detalle": r["detalle"],
+                "total": r["total"],
+                "tipo": r["tipo"],
+            }
+            if anterior and anterior.get("cuit_cliente"):
+                # ya estaba confirmado (a mano o de una carga anterior) - no lo pisamos
+                factura["cuit_cliente"] = anterior["cuit_cliente"]
+            elif r.get("cuit_sugerido"):
+                factura["cuit_sugerido"] = r["cuit_sugerido"]
+                factura["nombre_sugerido"] = r["nombre_sugerido"]
 
-    agregadas = 0
-    actualizadas = 0
-    for r in registros:
-        anterior = por_numero.get(r["numero"])
-        factura = {
-            "numero": r["numero"],
-            "fecha_emision": r["fecha_emision"],
-            "periodo": r["periodo"],
-            "cuit_cliente": r["cuit_cliente"],
-            "cliente_informe": r["cliente_informe"],
-            "detalle": r["detalle"],
-            "total": r["total"],
-            "tipo": r["tipo"],
+            if anterior:
+                actualizadas += 1
+            else:
+                agregadas += 1
+            por_numero[r["numero"]] = factura
+
+        facturas = list(por_numero.values())
+        mensaje = f"Importa informe ({file.filename}): {agregadas} factura(s) nueva(s), {actualizadas} actualizada(s) ({usuario['email']})"
+        pendientes = sum(1 for f in facturas if not f["cuit_cliente"])
+        resultado = {
+            "agregadas": agregadas,
+            "actualizadas": actualizadas,
+            "total_en_base": len(facturas),
+            "pendientes": pendientes,
         }
-        if anterior and anterior.get("cuit_cliente"):
-            # ya estaba confirmado (a mano o de una carga anterior) - no lo pisamos
-            factura["cuit_cliente"] = anterior["cuit_cliente"]
-        elif r.get("cuit_sugerido"):
-            factura["cuit_sugerido"] = r["cuit_sugerido"]
-            factura["nombre_sugerido"] = r["nombre_sugerido"]
+        return facturas, mensaje, resultado
 
-        if anterior:
-            actualizadas += 1
-        else:
-            agregadas += 1
-        por_numero[r["numero"]] = factura
-
-    facturas = list(por_numero.values())
-    github_store.put_json(
-        "data/facturas.json",
-        facturas,
-        f"Importa informe ({file.filename}): {agregadas} factura(s) nueva(s), {actualizadas} actualizada(s) ({usuario['email']})",
-        usuario["email"],
-    )
-
-    pendientes = sum(1 for f in facturas if not f["cuit_cliente"])
-    return {
-        "agregadas": agregadas,
-        "actualizadas": actualizadas,
-        "total_en_base": len(facturas),
-        "pendientes": pendientes,
-    }
+    return github_store.put_json_con_reintento("data/facturas.json", transformar, usuario["email"])
 
 
 # Resuelve a mano las facturas que el matcheo automático dejó sin CUIT -
@@ -209,25 +201,20 @@ def confirmar_cuit_pendiente(body: dict, authorization: str | None = Header(None
     if cuit not in clientes:
         raise HTTPException(400, "Ese CUIT no está cargado en Clientes - agregalo ahí primero")
 
-    facturas, _ = github_store.get_json("data/facturas.json")
-    resueltas = []
-    for f in facturas:
-        if f.get("cliente_informe") == cliente_informe and not f.get("cuit_cliente"):
-            f["cuit_cliente"] = cuit
-            f.pop("cuit_sugerido", None)
-            f.pop("nombre_sugerido", None)
-            resueltas.append(f)
+    def transformar(facturas):
+        resueltas = []
+        for f in facturas:
+            if f.get("cliente_informe") == cliente_informe and not f.get("cuit_cliente"):
+                f["cuit_cliente"] = cuit
+                f.pop("cuit_sugerido", None)
+                f.pop("nombre_sugerido", None)
+                resueltas.append(f)
+        if not resueltas:
+            raise HTTPException(404, "No hay facturas pendientes con ese nombre")
+        mensaje = f"Confirma CUIT {cuit} para '{cliente_informe}' -> {len(resueltas)} factura(s) ({usuario['email']})"
+        return facturas, mensaje, {"resueltas": resueltas}
 
-    if not resueltas:
-        raise HTTPException(404, "No hay facturas pendientes con ese nombre")
-
-    github_store.put_json(
-        "data/facturas.json",
-        facturas,
-        f"Confirma CUIT {cuit} para '{cliente_informe}' -> {len(resueltas)} factura(s) ({usuario['email']})",
-        usuario["email"],
-    )
-    return {"resueltas": resueltas}
+    return github_store.put_json_con_reintento("data/facturas.json", transformar, usuario["email"])
 
 
 # --- 3) subir extracto (admin, supervisor; no se persiste el texto crudo) ---
@@ -289,43 +276,38 @@ def consolidar_extractos(body: dict, authorization: str | None = Header(None)):
     if not matches:
         raise HTTPException(400, "No hay pagos para consolidar")
 
-    pagos, _ = github_store.get_json("data/pagos.json")
-    ya_pagadas = {p["factura_numero"] for p in pagos}
+    def transformar(pagos):
+        ya_pagadas = {p["factura_numero"] for p in pagos}
+        confirmados = []
+        omitidos = []
+        vistos = set()
+        for m in matches:
+            numero = m.get("factura_numero")
+            if numero in ya_pagadas or numero in vistos:
+                omitidos.append(numero)
+                continue
+            vistos.add(numero)
+            confirmados.append(
+                {
+                    "factura_numero": numero,
+                    "cuit_cliente": m["cuit_cliente"],
+                    "monto": m["monto"],
+                    "origen": "auto",
+                    "extracto": m.get("extracto_label"),
+                    "tipo_movimiento": m.get("tipo_movimiento"),
+                    "fecha_aprox": m.get("fecha_aprox"),
+                    "numero_transaccion": None,
+                    "confirmado_por": usuario["email"],
+                    "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
+                }
+            )
+        resultado = {"confirmados": confirmados, "omitidos": omitidos}
+        if not confirmados:
+            return None, "", resultado
+        mensaje = f"Consolidación manual: concilia {len(confirmados)} pago(s) por CUIT+monto ({usuario['email']})"
+        return pagos + confirmados, mensaje, resultado
 
-    confirmados = []
-    omitidos = []
-    vistos = set()
-    for m in matches:
-        numero = m.get("factura_numero")
-        if numero in ya_pagadas or numero in vistos:
-            omitidos.append(numero)
-            continue
-        vistos.add(numero)
-        confirmados.append(
-            {
-                "factura_numero": numero,
-                "cuit_cliente": m["cuit_cliente"],
-                "monto": m["monto"],
-                "origen": "auto",
-                "extracto": m.get("extracto_label"),
-                "tipo_movimiento": m.get("tipo_movimiento"),
-                "fecha_aprox": m.get("fecha_aprox"),
-                "numero_transaccion": None,
-                "confirmado_por": usuario["email"],
-                "fecha_confirmacion": datetime.now(timezone.utc).date().isoformat(),
-            }
-        )
-
-    if confirmados:
-        pagos.extend(confirmados)
-        github_store.put_json(
-            "data/pagos.json",
-            pagos,
-            f"Consolidación manual: concilia {len(confirmados)} pago(s) por CUIT+monto ({usuario['email']})",
-            usuario["email"],
-        )
-
-    return {"confirmados": confirmados, "omitidos": omitidos}
+    return github_store.put_json_con_reintento("data/pagos.json", transformar, usuario["email"])
 
 
 # --- 4) clientes (admin, supervisor; CUIT como clave única) ---
@@ -337,18 +319,18 @@ def upsert_cliente(body: dict, authorization: str | None = Header(None)):
     if not (cuit.isdigit() and len(cuit) == 11):
         raise HTTPException(400, "El CUIT tiene que tener 11 dígitos")
 
-    clientes, _ = github_store.get_json("data/clientes.json")
-    accion = "actualiza" if cuit in clientes else "agrega"
-    clientes[cuit] = {
-        "nombre": body["nombre"],
-        "condicion_iva": body.get("condicion_iva", ""),
-        "direccion": body.get("direccion", ""),
-        "provincia": body.get("provincia", ""),
-    }
-    github_store.put_json(
-        "data/clientes.json", clientes, f"{accion} cliente {cuit} ({usuario['email']})", usuario["email"]
-    )
-    return clientes[cuit]
+    def transformar(clientes):
+        accion = "actualiza" if cuit in clientes else "agrega"
+        clientes[cuit] = {
+            "nombre": body["nombre"],
+            "condicion_iva": body.get("condicion_iva", ""),
+            "direccion": body.get("direccion", ""),
+            "provincia": body.get("provincia", ""),
+        }
+        mensaje = f"{accion} cliente {cuit} ({usuario['email']})"
+        return clientes, mensaje, clientes[cuit]
+
+    return github_store.put_json_con_reintento("data/clientes.json", transformar, usuario["email"])
 
 
 # --- 5) usuarios (solo admin; email como clave única) ---
@@ -372,17 +354,17 @@ def upsert_usuario(body: dict, authorization: str | None = Header(None)):
     if perfil not in PERFILES_VALIDOS:
         raise HTTPException(400, f"Perfil inválido, tiene que ser uno de: {', '.join(sorted(PERFILES_VALIDOS))}")
 
-    usuarios, _ = github_store.get_json("data/usuarios.json")
-    accion = "actualiza" if email in usuarios else "agrega"
-    usuarios[email] = {
-        "nombre": body.get("nombre", "").strip(),
-        "apellido": body.get("apellido", "").strip(),
-        "perfil": perfil,
-    }
-    github_store.put_json(
-        "data/usuarios.json", usuarios, f"{accion} usuario {email} como {perfil} ({usuario['email']})", usuario["email"]
-    )
-    return usuarios[email]
+    def transformar(usuarios):
+        accion = "actualiza" if email in usuarios else "agrega"
+        usuarios[email] = {
+            "nombre": body.get("nombre", "").strip(),
+            "apellido": body.get("apellido", "").strip(),
+            "perfil": perfil,
+        }
+        mensaje = f"{accion} usuario {email} como {perfil} ({usuario['email']})"
+        return usuarios, mensaje, usuarios[email]
+
+    return github_store.put_json_con_reintento("data/usuarios.json", transformar, usuario["email"])
 
 
 # --- lectura del tablero: todo el portal, no solo las escrituras, exige login ---

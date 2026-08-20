@@ -28,17 +28,44 @@ def get_json(path: str):
     return json.loads(content), data["sha"]
 
 
-def put_json(path: str, value, message: str, author_email: str | None = None):
-    _, sha = get_json(path)
-    content = json.dumps(value, ensure_ascii=False, indent=2)
-    body = {
-        "message": message,
-        "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
-        "sha": sha,
-        "branch": GITHUB_BRANCH,
-    }
-    if author_email:
-        body["committer"] = {"name": author_email.split("@")[0], "email": author_email}
-    res = requests.put(f"{API}/{path}", headers=HEADERS, json=body, timeout=15)
-    res.raise_for_status()
-    return res.json()
+def put_json_con_reintento(path: str, transformar, author_email: str | None = None, intentos: int = 4):
+    """Lee value+sha, llama a `transformar(value) -> (nuevo_value, mensaje, resultado)`
+    e intenta escribir con esa sha.
+
+    Dos requests concurrentes (dos admins, o dos clics rápidos) pueden leer el
+    mismo archivo y despues las dos intentar escribir - GitHub rechaza la
+    segunda con 409 porque su sha ya quedó vieja. Reintentar la escritura a
+    ciegas con el mismo contenido sería peor: pisaría en silencio el cambio
+    del otro request. Por eso ante un 409 se vuelve a leer el estado más
+    nuevo y se llama a `transformar` de nuevo desde cero, para que el cambio
+    se aplique sobre los datos actuales.
+
+    `transformar` puede devolver `nuevo_value=None` para indicar que no hay
+    nada que escribir (ej. no había pagos nuevos para consolidar) - en ese
+    caso no se pega nada a GitHub y se devuelve `resultado` directo.
+    """
+    ultimo_error = None
+    for intento in range(intentos):
+        value, sha = get_json(path)
+        nuevo_value, mensaje, resultado = transformar(value)
+        if nuevo_value is None:
+            return resultado
+
+        content = json.dumps(nuevo_value, ensure_ascii=False, indent=2)
+        body = {
+            "message": mensaje,
+            "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+            "sha": sha,
+            "branch": GITHUB_BRANCH,
+        }
+        if author_email:
+            body["committer"] = {"name": author_email.split("@")[0], "email": author_email}
+        res = requests.put(f"{API}/{path}", headers=HEADERS, json=body, timeout=15)
+        if res.status_code == 409:
+            ultimo_error = requests.exceptions.HTTPError(
+                f"409 Conflict en {path} (intento {intento + 1}/{intentos})", response=res
+            )
+            continue
+        res.raise_for_status()
+        return resultado
+    raise ultimo_error
