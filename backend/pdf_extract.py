@@ -28,6 +28,8 @@ MOVIMIENTO_KEYWORDS = [
     "Transferencia recibida",
     "Credito transf online banking emp",
     "Crédito transf online banking emp",
+    "Credito transferencia por internet",
+    "Crédito transferencia por internet",
 ]
 
 
@@ -99,7 +101,11 @@ def parse_amount(s: str) -> float:
 
 
 def cuit_pattern(cuit: str) -> re.Pattern:
-    return re.compile(rf"{cuit[0]}\s?{cuit[1:]}")
+    # El extracto a veces trae el CUIT con un espacio o un guión metido en
+    # cualquier punto (ej. "3 0707681582" en vez de "30707681582", corte de
+    # columna al extraer el texto del PDF) - se tolera ese ruido entre
+    # cualquier par de dígitos, no solo después del primero.
+    return re.compile(r"[\s-]*".join(re.escape(d) for d in cuit))
 
 
 def find_cuit_matches(text: str, cuit: str):
