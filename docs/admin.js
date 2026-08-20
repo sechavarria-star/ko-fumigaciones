@@ -182,6 +182,7 @@ document.getElementById("btn-actualizar").addEventListener("click", async (e) =>
   btn.textContent = "Actualizando…";
   try {
     await cargarDatosAutenticado();
+    mostrarAviso("Datos actualizados.", "ok");
   } catch (err) {
     avisarError(err, "No se pudo actualizar: ");
   }
