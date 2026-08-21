@@ -146,122 +146,139 @@ function accConfirmarCuit_(body, usuario) {
 }
 
 // --- 3) extractos ---
-// Solo calcula candidatos (CUIT + monto exacto) - no escribe nada. El
-// frontend acumula la cola y recién /consolidar confirma de verdad.
+// Solo calcula candidatos - no escribe nada. El frontend acumula la cola y
+// recién consolidar_extractos confirma de verdad.
 function accParseExtracto_(body, usuario) {
   const texto = textoDelPdf_(body, 'extracto.pdf');
 
   const nombrePorCuit = {};
   sbGetTodo('clientes', 'select=cuit,nombre', 'cuit').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });
 
-  // Truncar esta lectura haría re-conciliar pagos ya cargados (falso
-  // duplicado); el UNIQUE de la base lo frena, pero mejor no llegar ahí.
+  const pagos = sbGetTodo('pagos', 'select=factura_numero,cuit_cliente,monto,fecha_aprox', 'id');
+
   const yaPagadas = {};
-  sbGetTodo('pagos', 'select=factura_numero', 'id').forEach(function (p) { yaPagadas[p.factura_numero] = true; });
+  pagos.forEach(function (p) { yaPagadas[p.factura_numero] = true; });
+
+  // Movimientos que YA se conciliaron alguna vez.
+  //
+  // Sin esto, volver a subir el mismo extracto genera pagos inventados: las
+  // facturas que ese archivo ya salvó salen de la lista de pendientes, así
+  // que el mismo movimiento del banco pasa a reclamar la SIGUIENTE factura
+  // impaga. Medido sobre los 4 extractos reales: 27 pagos falsos en la
+  // segunda subida. Que la factura no se pueda pagar dos veces (el UNIQUE)
+  // no alcanza - acá el problema es el movimiento usado dos veces.
+  //
+  // La firma lleva la fecha a propósito: estos clientes son abonos
+  // mensuales, o sea que un mismo CUIT paga el mismo importe todos los
+  // meses, y sin la fecha se descartarían pagos legítimos.
+  const usados = {};
+  pagos.forEach(function (p) {
+    if (!p.fecha_aprox) return;
+    const k = firmaMovimiento_(p.cuit_cliente, p.monto, p.fecha_aprox);
+    usados[k] = (usados[k] || 0) + 1;
+  });
 
   // las facturas pendientes de validar (sin CUIT) no tienen con qué buscar
   const pendientes = sbGetTodo('facturas', 'select=numero,cuit_cliente,total', 'numero').filter(function (f) {
     return f.cuit_cliente && !yaPagadas[f.numero];
   });
 
-  // Se recorren los MOVIMIENTOS, no las facturas, y cada movimiento salda
-  // como mucho UNA factura.
-  //
-  // Al revés (por factura) era el bug que dejaba plata mal conciliada: estos
-  // clientes son abonos mensuales, o sea que pagan el mismo importe todos
-  // los meses. Preguntando "¿hay un crédito de este CUIT por $45.000?" daba
-  // que sí para las 5 facturas de $45.000 que el consorcio tenía impagas,
-  // aunque en el extracto hubiera un solo pago. Contra los 4 extractos
-  // disponibles, 29 facturas ($3.050.500) se habrían dado por cobradas sin
-  // un pago que las respalde.
-  //
-  // Se asigna a la factura más vieja impaga (los números de comprobante son
-  // crecientes en el tiempo), que es el criterio contable habitual.
+  // Más viejas primero: los números de comprobante son crecientes en el
+  // tiempo, y saldar la más vieja es el criterio contable habitual.
   const porCuit = {};
   pendientes.forEach(function (f) {
     if (!porCuit[f.cuit_cliente]) porCuit[f.cuit_cliente] = [];
     porCuit[f.cuit_cliente].push(f);
   });
-
-  const matches = [];
-  const tomadasPorCuit = {};   // cuit -> {numero: true} facturas ya reclamadas
-  const gastadosPorCuit = {};  // cuit -> {importe: cuantos movimientos se usaron}
-
-  Object.keys(porCuit).forEach(function (cuit) {
-    const facturas = porCuit[cuit].sort(function (a, b) {
-      return a.numero < b.numero ? -1 : a.numero > b.numero ? 1 : 0;
-    });
-    const tomadas = (tomadasPorCuit[cuit] = {});
-    const gastados = (gastadosPorCuit[cuit] = {});
-
-    buscarCuitEnTexto_(texto, cuit).forEach(function (h) {
-      if (!h.tipo) return; // no es un movimiento de cobro
-      for (let i = 0; i < facturas.length; i++) {
-        const f = facturas[i];
-        if (tomadas[f.numero]) continue;
-        if (h.importes.indexOf(f.total) === -1) continue;
-        tomadas[f.numero] = true;
-        gastados[f.total] = (gastados[f.total] || 0) + 1;
-        matches.push({
-          factura_numero: f.numero,
-          cuit_cliente: cuit,
-          nombre_cliente: nombrePorCuit[cuit] || cuit,
-          monto: f.total,
-          tipo_movimiento: h.tipo,
-          fecha_aprox: h.fecha,
-        });
-        return; // este movimiento ya se usó: no puede saldar otra factura
-      }
-    });
+  Object.keys(porCuit).forEach(function (c) {
+    porCuit[c].sort(function (a, b) { return a.numero < b.numero ? -1 : a.numero > b.numero ? 1 : 0; });
   });
 
-  // --- segunda pasada: pagos con retencion ---
-  // Los que pagan menos que la factura y depositan la diferencia a la AFIP
-  // por cuenta de KO. Nunca los encuentra la pasada exacta, y no se
-  // confirman solos: van a una cola aparte para que una persona los apruebe
-  // (es plata, y un importe "parecido" puede ser de otra factura).
+  // Se recorren los MOVIMIENTOS, no las facturas, y cada uno salda como
+  // mucho UNA. Al revés era el bug que dejaba plata mal conciliada:
+  // preguntando "¿hay un crédito de este CUIT por $45.000?" daba que sí para
+  // las 5 facturas de $45.000 impagas, aunque hubiera un solo pago.
+  const cobros = movimientosDelExtracto_(texto, Object.keys(porCuit)).filter(function (mov) {
+    return mov.importe > 0 && mov.cuits.length && esCobro_(mov.descripcion);
+  });
+
+  const tomadas = {};
+  const matches = [];
+  const libres = [];
+
+  // Pasada 1: importe exacto. Va entera antes de la de retenciones, si no un
+  // cobro con retención podría quedarse con una factura que otro movimiento
+  // necesitaba para un match exacto.
+  cobros.forEach(function (mov) {
+    for (let c = 0; c < mov.cuits.length; c++) {
+      const cuit = mov.cuits[c];
+      const k = firmaMovimiento_(cuit, mov.importe, mov.fecha);
+      if (usados[k]) { usados[k] -= 1; return; } // ya conciliado en otra subida
+
+      const f = elegirFactura_(porCuit[cuit], tomadas, function (f) {
+        return Math.abs(f.total - mov.importe) < 0.005;
+      });
+      if (!f) continue;
+      tomadas[f.numero] = true;
+      matches.push({
+        factura_numero: f.numero,
+        cuit_cliente: cuit,
+        nombre_cliente: nombrePorCuit[cuit] || cuit,
+        monto: f.total,
+        tipo_movimiento: mov.descripcion,
+        fecha_aprox: mov.fecha,
+      });
+      return;
+    }
+    libres.push(mov);
+  });
+
+  // Pasada 2: cobros con retención, solo sobre los movimientos que sobraron.
+  // Nunca se confirman solos - van a una cola de revisión en el frontend.
   const aproximados = [];
-  const movimientos = movimientosDelExtracto_(texto, Object.keys(porCuit));
-
-  movimientos.forEach(function (mov) {
-    if (mov.importe <= 0 || !mov.cuits.length) return;
-    if (!MOVIMIENTO_KEYWORDS.filter(function (k) { return mov.descripcion.indexOf(k) !== -1; })[0]) return;
-
-    mov.cuits.forEach(function (cuit) {
-      const facturas = porCuit[cuit] || [];
-      const usadas = tomadasPorCuit[cuit] || (tomadasPorCuit[cuit] = {});
-      const gastados = gastadosPorCuit[cuit] || (gastadosPorCuit[cuit] = {});
-
-      // Este movimiento ya salvo una factura en la pasada exacta: no puede
-      // volver a usarse como pago con retencion de otra.
-      if (gastados[mov.importe]) {
-        gastados[mov.importe] -= 1;
-        return;
-      }
-
-      for (let i = 0; i < facturas.length; i++) {
-        const f = facturas[i];
-        if (usadas[f.numero]) continue;
-        const retencion = f.total - mov.importe;
-        if (retencion <= 0 || retencion > f.total * RETENCION_MAX) continue;
-        usadas[f.numero] = true;
-        aproximados.push({
-          factura_numero: f.numero,
-          cuit_cliente: cuit,
-          nombre_cliente: nombrePorCuit[cuit] || cuit,
-          monto: mov.importe,
-          monto_factura: f.total,
-          retencion: Math.round(retencion * 100) / 100,
-          porcentaje: Math.round((retencion / f.total) * 10000) / 100,
-          tipo_movimiento: mov.descripcion,
-          fecha_aprox: mov.fecha,
-        });
-        return; // este movimiento ya se usó
-      }
-    });
+  libres.forEach(function (mov) {
+    for (let c = 0; c < mov.cuits.length; c++) {
+      const cuit = mov.cuits[c];
+      const f = elegirFactura_(porCuit[cuit], tomadas, function (f) {
+        const ret = f.total - mov.importe;
+        return ret > 0 && ret <= f.total * RETENCION_MAX;
+      });
+      if (!f) continue;
+      tomadas[f.numero] = true;
+      const retencion = Math.round((f.total - mov.importe) * 100) / 100;
+      aproximados.push({
+        factura_numero: f.numero,
+        cuit_cliente: cuit,
+        nombre_cliente: nombrePorCuit[cuit] || cuit,
+        monto: mov.importe,
+        monto_factura: f.total,
+        retencion: retencion,
+        porcentaje: Math.round((retencion / f.total) * 10000) / 100,
+        tipo_movimiento: mov.descripcion,
+        fecha_aprox: mov.fecha,
+      });
+      return;
+    }
   });
 
   return { extracto_label: body.filename, matches: matches, aproximados: aproximados };
+}
+
+function firmaMovimiento_(cuit, importe, fecha) {
+  return cuit + '|' + Number(importe).toFixed(2) + '|' + fecha;
+}
+
+function esCobro_(descripcion) {
+  return MOVIMIENTO_KEYWORDS.some(function (k) { return descripcion.indexOf(k) !== -1; });
+}
+
+function elegirFactura_(facturas, tomadas, cumple) {
+  if (!facturas) return null;
+  for (let i = 0; i < facturas.length; i++) {
+    if (tomadas[facturas[i].numero]) continue;
+    if (cumple(facturas[i])) return facturas[i];
+  }
+  return null;
 }
 
 function accConsolidarExtractos_(body, usuario) {

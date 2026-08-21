@@ -14,6 +14,14 @@ var MOVIMIENTO_KEYWORDS = [
   'Crédito transf online banking emp',
   'Credito transferencia por internet',
   'Crédito transferencia por internet',
+  // Estos dos faltaban y son cobros reales (el saldo sube). Se colaban de
+  // rebote cuando el matcheo miraba una ventana de texto - agarraba la
+  // palabra clave del movimiento vecino - y se perdían al pasar a leer cada
+  // movimiento por separado. Los usa, entre otros, el consorcio de José
+  // Bonifacio. Ojo: la descripción no dice si entra o sale plata, eso lo
+  // decide el signo del importe (se filtra por importe > 0).
+  'Transferencia pagos a terceros',
+  'Transf recibida cvu dif titular',
 ];
 
 function parseImporte_(s) {
