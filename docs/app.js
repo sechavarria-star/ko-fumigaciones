@@ -22,7 +22,7 @@ const puedeEscribir = () => YO && (YO.perfil === "admin" || YO.perfil === "super
 // es a través del backend, que valida el token de Google antes de responder.
 // admin.js llama a esto recién después de un login exitoso.
 async function cargarDatosAutenticado() {
-  const datos = await llamarBackend("/api/data");
+  const datos = await llamarBackend("obtener_datos");
   CLIENTES = datos.clientes;
   FACTURAS = datos.facturas;
   PAGOS = datos.pagos;

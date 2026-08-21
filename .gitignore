@@ -15,3 +15,8 @@ __pycache__/
 # credencial: nunca va a git, y de todas formas vence en ~1h)
 .token
 .clasprc.json
+
+# docs/ es el sitio PUBLICO de GitHub Pages: un PDF de un cliente copiado ahí
+# para probar algo queda publicado en internet. Que no pueda pasar por
+# accidente.
+docs/*.pdf

@@ -1,8 +1,8 @@
 // Panel de admin: login con Google + acciones que escriben datos (confirmar
 // pago manual, subir factura/extracto, editar clientes). Todas las escrituras
-// pasan por el backend (CONFIG.BACKEND_URL), que valida el login de Google
-// contra una lista de emails permitidos y hace el commit real a GitHub - el
-// navegador nunca tiene un token de GitHub.
+// pasan por el backend (CONFIG.BACKEND_URL), un Web App de Apps Script que
+// valida el login de Google y escribe en Supabase - el navegador nunca tiene
+// credenciales de la base.
 
 let ID_TOKEN = null;
 let SIGNED_IN_EMAIL = null;
@@ -16,23 +16,33 @@ function backendListo() {
   return true;
 }
 
-async function llamarBackend(path, options = {}) {
-  const res = await fetch(CONFIG.BACKEND_URL + path, {
-    ...options,
-    headers: {
-      ...(options.headers || {}),
-      Authorization: `Bearer ${ID_TOKEN}`,
-    },
+// El backend es un Web App de Apps Script, y eso impone dos cosas:
+//
+// 1. Nada de headers custom ni Content-Type application/json: dispararían un
+//    preflight (OPTIONS) que Apps Script no sabe responder. Por eso el token
+//    viaja adentro del body y el Content-Type es text/plain, que la spec de
+//    CORS considera "simple". El body igual es JSON.
+// 2. Siempre responde HTTP 200, incluso ante un error: el status real viene
+//    adentro del JSON. Mirar res.ok acá no sirve de nada.
+async function llamarBackend(action, params = {}) {
+  const res = await fetch(CONFIG.BACKEND_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ token: ID_TOKEN, action, ...params }),
   });
-  if (!res.ok) {
-    const raw = await res.text().catch(() => "");
-    let detail = raw;
-    try {
-      detail = JSON.parse(raw).detail || raw;
-    } catch {}
-    throw new Error(`${res.status}: ${detail}`);
+
+  const raw = await res.text();
+  let cuerpo;
+  try {
+    cuerpo = JSON.parse(raw);
+  } catch {
+    // Apps Script devuelve HTML cuando el deployment no está publicado o la
+    // URL quedó vieja - mostrar el HTML crudo no le sirve a nadie.
+    throw new Error(`${res.status}: el backend no devolvió JSON (¿URL o deployment mal?)`);
   }
-  return res.json();
+
+  if (cuerpo.status >= 400) throw new Error(`${cuerpo.status}: ${cuerpo.detail}`);
+  return cuerpo.data;
 }
 
 // El token de Google dura ~1 hora. Si una acción (o el medio de un lote
@@ -95,11 +105,9 @@ function avisarError(err, prefijo) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// El plan free de Render "duerme" el backend a los 15 min sin uso: la primera
-// request tras eso puede fallar directo (network error, "Failed to fetch") o
-// el backend puede devolver 503 si justo se cae la verificación del token con
-// Google (fallo de red del lado del servidor). Reintentamos con aviso en vez
-// de mostrar un error seco la primera vez que alguien entra después de un rato.
+// Apps Script no se "duerme" como hacía Render, pero un corte de red o un
+// hipo de la infraestructura de Google siguen dando un fetch fallido
+// (TypeError) o un 503. Vale reintentar antes de mostrar un error seco.
 function esReintentable(err) {
   return err instanceof TypeError || err.message.startsWith("503");
 }
@@ -113,7 +121,7 @@ async function cargarConReintentos(gateError) {
     } catch (err) {
       if (!esReintentable(err) || intento === esperas.length) throw err;
       gateError.hidden = false;
-      gateError.textContent = "Despertando el servidor (plan gratis, puede tardar unos segundos)…";
+      gateError.textContent = "Reintentando conectar con el servidor…";
       await sleep(esperas[intento]);
     }
   }
@@ -222,15 +230,11 @@ document.getElementById("form-confirmar-pago").addEventListener("submit", async 
   e.preventDefault();
   const fd = new FormData(e.target);
   try {
-    const pago = await llamarBackend("/api/pagos/confirmar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        factura_numero: pagoPendienteContext.factura,
-        cuit_cliente: pagoPendienteContext.cuit,
-        numero_transaccion: fd.get("numero_transaccion"),
-        fecha_ingreso: fd.get("fecha_ingreso"),
-      }),
+    const pago = await llamarBackend("confirmar_pago", {
+      factura_numero: pagoPendienteContext.factura,
+      cuit_cliente: pagoPendienteContext.cuit,
+      numero_transaccion: fd.get("numero_transaccion"),
+      fecha_ingreso: fd.get("fecha_ingreso"),
     });
     aplicarPagoLocal(pago);
     document.getElementById("modal-confirmar-backdrop").classList.remove("open");
@@ -255,10 +259,8 @@ wireDropzone("dropzone-informe", (archivos) => archivos[0] && subirInformeConsol
 async function subirInformeConsolidado(file) {
   const draftEl = document.getElementById("informe-draft");
   draftEl.innerHTML = `<div class="draft-card">Leyendo el informe y matcheando clientes… puede tardar un minuto.</div>`;
-  const fd = new FormData();
-  fd.append("file", file);
   try {
-    const resultado = await llamarBackend("/api/facturas/importar-informe", { method: "POST", body: fd });
+    const resultado = await llamarBackend("importar_informe", await payloadDePdf(file));
     draftEl.innerHTML = `<div class="draft-card">${resultado.agregadas} factura(s) nueva(s), ${resultado.actualizadas} actualizada(s). Quedan ${resultado.pendientes} pendiente(s) de validar en toda la base${resultado.pendientes ? " (revisalas en la pestaña Pendientes)" : ""}.</div>`;
     document.getElementById("input-informe").value = "";
     COLA_CONSOLIDACION = [];
@@ -319,10 +321,9 @@ function renderPendientesLista() {
       const btn = form.querySelector("button");
       btn.disabled = true;
       try {
-        const resultado = await llamarBackend("/api/facturas/confirmar-cuit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cliente_informe: p.cliente_informe, cuit_cliente: cuit }),
+        const resultado = await llamarBackend("confirmar_cuit", {
+          cliente_informe: p.cliente_informe,
+          cuit_cliente: cuit,
         });
         resultado.resueltas.forEach((factura) => {
           const idx = FACTURAS.findIndex((f) => f.numero === factura.numero);
@@ -389,10 +390,8 @@ async function procesarArchivosExtracto(files) {
   for (let i = 0; i < files.length; i++) {
     draftEl.innerHTML = `<div class="draft-card">Leyendo extracto ${i + 1} de ${files.length}…</div>`;
     const file = files[i];
-    const fd = new FormData();
-    fd.append("file", file);
     try {
-      const resultado = await llamarBackend("/api/extractos/parse", { method: "POST", body: fd });
+      const resultado = await llamarBackend("parse_extracto", await payloadDePdf(file));
       let agregadas = 0;
       resultado.matches.forEach((m) => {
         if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
@@ -500,11 +499,7 @@ function renderColaConsolidacion() {
     btn.disabled = true;
     btn.textContent = "Consolidando…";
     try {
-      const resultado = await llamarBackend("/api/extractos/consolidar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matches: seleccionados }),
-      });
+      const resultado = await llamarBackend("consolidar_extractos", { matches: seleccionados });
       resultado.confirmados.forEach(aplicarPagoLocal);
       const yaResueltas = new Set([...resultado.confirmados.map((p) => p.factura_numero), ...resultado.omitidos]);
       COLA_CONSOLIDACION = COLA_CONSOLIDACION.filter((m) => !yaResueltas.has(m.factura_numero));
@@ -539,11 +534,7 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     provincia: "",
   };
   try {
-    await llamarBackend("/api/clientes/upsert", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cuit, ...info }),
-    });
+    await llamarBackend("upsert_cliente", { cuit, ...info });
     aplicarClienteLocal(cuit, info);
     renderTablaClientesAdmin();
     e.target.reset();
@@ -584,7 +575,7 @@ async function cargarUsuarios() {
   const tbody = document.getElementById("tbody-usuarios");
   tbody.innerHTML = `<tr><td colspan="4">Cargando…</td></tr>`;
   try {
-    USUARIOS_CACHE = await llamarBackend("/api/usuarios");
+    USUARIOS_CACHE = await llamarBackend("listar_usuarios");
     renderTablaUsuarios();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="3" class="warn-text">No se pudo cargar: ${err.message}</td></tr>`;
@@ -617,15 +608,11 @@ document.getElementById("form-usuario").addEventListener("submit", async (e) => 
     return;
   }
   try {
-    await llamarBackend("/api/usuarios/upsert", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        nombre: fd.get("nombre").trim(),
-        apellido: fd.get("apellido").trim(),
-        perfil: fd.get("perfil"),
-      }),
+    await llamarBackend("upsert_usuario", {
+      email,
+      nombre: fd.get("nombre").trim(),
+      apellido: fd.get("apellido").trim(),
+      perfil: fd.get("perfil"),
     });
     e.target.reset();
     cargarUsuarios();

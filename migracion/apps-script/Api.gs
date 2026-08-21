@@ -18,29 +18,38 @@
  * respuesta, no hay vuelta de rosca por código: tocaría meter un proxy.
  */
 function doPost(e) {
-  let usuario = null;
   try {
     const body = JSON.parse(e.postData.contents);
-    usuario = usuarioAutorizado_(body.token);
-    const resultado = despachar_(body.action, body, usuario);
-    return responder_(200, resultado);
+    const usuario = usuarioAutorizado_(body.token);
+    return responderOk_(despachar_(body.action, body, usuario));
   } catch (err) {
     const status = err.status || 500;
     if (status >= 500) {
       console.error('Error no controlado', err, err.stack);
     }
-    return responder_(status, { detail: err.message || String(err) });
+    return responderError_(status, err.message || String(err));
   }
 }
 
 // Un GET simple sirve como health check (no necesita token) - útil para el
 // mismo tipo de ping que hoy se le hace a /api/health en Render.
 function doGet(e) {
-  return responder_(200, { status: 'ok' });
+  return responderOk_({ salud: 'ok' });
 }
 
-function responder_(status, data) {
-  const cuerpo = Object.assign({ status: status }, data);
+// El payload va ANIDADO en `data`, no desparramado al lado de `status`:
+// varias acciones devuelven mapas con claves que no controlamos
+// (listar_usuarios devuelve {email: {...}}), y aplanarlas metía `status`
+// adentro del propio listado - un usuario fantasma llamado "status".
+function responderOk_(data) {
+  return salida_({ status: 200, data: data === undefined ? null : data });
+}
+
+function responderError_(status, detail) {
+  return salida_({ status: status, detail: detail });
+}
+
+function salida_(cuerpo) {
   return ContentService.createTextOutput(JSON.stringify(cuerpo)).setMimeType(ContentService.MimeType.JSON);
 }
 
