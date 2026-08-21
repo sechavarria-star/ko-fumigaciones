@@ -19,6 +19,29 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+/* Barras de scroll acordes al tema oscuro.
+   `color-scheme: dark` ya arregla las del navegador (y de paso los controles
+   nativos, como el date picker); las reglas ::-webkit-scrollbar son para
+   afinar las de los contenedores propios - sobre todo el modal del estado de
+   cuenta, donde una barra clara pegada al panel oscuro se notaba mucho. */
+:root { color-scheme: dark; }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+  /* el borde transparente deja aire entre el pulgar y el borde del panel */
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--text-dim); background-clip: content-box; }
+*::-webkit-scrollbar-corner { background: transparent; }
+
 body {
   margin: 0;
   background: var(--bg);
