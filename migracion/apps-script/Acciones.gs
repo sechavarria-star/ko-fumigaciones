@@ -3,6 +3,14 @@
  * backend/main.py - mismo comportamiento, mismos mensajes de error.
  */
 
+// Cuanto puede quedar por debajo del total de la factura un cobro para que
+// igual se ofrezca como candidato "con retencion". Medido sobre los clientes
+// reales que retienen: Diagnostico Medico ~0,3%, Clinica Delta 1,2%-2,9%,
+// Rockwell ~3,5%, y varios consorcios entre 7% y 9,6%. 12% deja margen sin
+// llegar a importes que ya serian de otra factura.
+// Estos candidatos NUNCA se confirman solos: van a una cola de revision.
+var RETENCION_MAX = 0.12;
+
 // --- Tablero (lectura) ---
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
@@ -176,11 +184,15 @@ function accParseExtracto_(body, usuario) {
   });
 
   const matches = [];
+  const tomadasPorCuit = {};   // cuit -> {numero: true} facturas ya reclamadas
+  const gastadosPorCuit = {};  // cuit -> {importe: cuantos movimientos se usaron}
+
   Object.keys(porCuit).forEach(function (cuit) {
     const facturas = porCuit[cuit].sort(function (a, b) {
       return a.numero < b.numero ? -1 : a.numero > b.numero ? 1 : 0;
     });
-    const tomadas = {};
+    const tomadas = (tomadasPorCuit[cuit] = {});
+    const gastados = (gastadosPorCuit[cuit] = {});
 
     buscarCuitEnTexto_(texto, cuit).forEach(function (h) {
       if (!h.tipo) return; // no es un movimiento de cobro
@@ -189,6 +201,7 @@ function accParseExtracto_(body, usuario) {
         if (tomadas[f.numero]) continue;
         if (h.importes.indexOf(f.total) === -1) continue;
         tomadas[f.numero] = true;
+        gastados[f.total] = (gastados[f.total] || 0) + 1;
         matches.push({
           factura_numero: f.numero,
           cuit_cliente: cuit,
@@ -202,7 +215,53 @@ function accParseExtracto_(body, usuario) {
     });
   });
 
-  return { extracto_label: body.filename, matches: matches };
+  // --- segunda pasada: pagos con retencion ---
+  // Los que pagan menos que la factura y depositan la diferencia a la AFIP
+  // por cuenta de KO. Nunca los encuentra la pasada exacta, y no se
+  // confirman solos: van a una cola aparte para que una persona los apruebe
+  // (es plata, y un importe "parecido" puede ser de otra factura).
+  const aproximados = [];
+  const movimientos = movimientosDelExtracto_(texto, Object.keys(porCuit));
+
+  movimientos.forEach(function (mov) {
+    if (mov.importe <= 0 || !mov.cuits.length) return;
+    if (!MOVIMIENTO_KEYWORDS.filter(function (k) { return mov.descripcion.indexOf(k) !== -1; })[0]) return;
+
+    mov.cuits.forEach(function (cuit) {
+      const facturas = porCuit[cuit] || [];
+      const usadas = tomadasPorCuit[cuit] || (tomadasPorCuit[cuit] = {});
+      const gastados = gastadosPorCuit[cuit] || (gastadosPorCuit[cuit] = {});
+
+      // Este movimiento ya salvo una factura en la pasada exacta: no puede
+      // volver a usarse como pago con retencion de otra.
+      if (gastados[mov.importe]) {
+        gastados[mov.importe] -= 1;
+        return;
+      }
+
+      for (let i = 0; i < facturas.length; i++) {
+        const f = facturas[i];
+        if (usadas[f.numero]) continue;
+        const retencion = f.total - mov.importe;
+        if (retencion <= 0 || retencion > f.total * RETENCION_MAX) continue;
+        usadas[f.numero] = true;
+        aproximados.push({
+          factura_numero: f.numero,
+          cuit_cliente: cuit,
+          nombre_cliente: nombrePorCuit[cuit] || cuit,
+          monto: mov.importe,
+          monto_factura: f.total,
+          retencion: Math.round(retencion * 100) / 100,
+          porcentaje: Math.round((retencion / f.total) * 10000) / 100,
+          tipo_movimiento: mov.descripcion,
+          fecha_aprox: mov.fecha,
+        });
+        return; // este movimiento ya se usó
+      }
+    });
+  });
+
+  return { extracto_label: body.filename, matches: matches, aproximados: aproximados };
 }
 
 function accConsolidarExtractos_(body, usuario) {
@@ -223,7 +282,11 @@ function accConsolidarExtractos_(body, usuario) {
       factura_numero: numero,
       cuit_cliente: m.cuit_cliente,
       monto: m.monto,
-      origen: 'auto',
+      // `monto` es lo que entró al banco; si el cliente retuvo, la diferencia
+      // contra el total de la factura queda registrada aparte (la factura se
+      // considera saldada igual: la retención es crédito fiscal).
+      retencion: m.retencion || 0,
+      origen: m.retencion ? 'retencion' : 'auto',
       extracto: m.extracto_label || null,
       tipo_movimiento: m.tipo_movimiento || null,
       fecha_aprox: m.fecha_aprox || null,

@@ -61,6 +61,7 @@ function cerrarSesion(mensaje) {
   FACTURAS = [];
   PAGOS = [];
   COLA_CONSOLIDACION = [];
+  COLA_RETENCIONES = [];
   ULTIMOS_EXTRACTOS = [];
   document.getElementById("portal").hidden = true;
   document.getElementById("gate").hidden = false;
@@ -377,6 +378,122 @@ function cargarColaDeStorage() {
 
 let COLA_CONSOLIDACION = cargarColaDeStorage();
 
+// Cola aparte para los cobros con retención: entró menos que el total de la
+// factura porque el cliente retuvo impuestos. Van separados a propósito - los
+// de arriba coinciden peso por peso y se pueden tildar de una, estos hay que
+// mirarlos: un importe "parecido" también podría ser de otra factura.
+const COLA_RET_KEY = "ko_cola_retenciones_v1";
+
+function guardarRetencionesEnStorage() {
+  try {
+    localStorage.setItem(COLA_RET_KEY, JSON.stringify(COLA_RETENCIONES));
+  } catch (err) {
+    console.warn("No se pudo guardar la cola de retenciones:", err);
+  }
+}
+
+let COLA_RETENCIONES = (() => {
+  try {
+    const raw = localStorage.getItem(COLA_RET_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (err) {
+    console.warn("No se pudo leer la cola de retenciones:", err);
+    return [];
+  }
+})();
+
+let busquedaRetenciones = "";
+
+document.getElementById("buscar-retenciones").addEventListener("input", (e) => {
+  busquedaRetenciones = e.target.value;
+  renderColaRetenciones();
+});
+
+function renderColaRetenciones() {
+  const el = document.getElementById("cola-retenciones");
+  if (!COLA_RETENCIONES.length) {
+    el.innerHTML = `<p class="hint">No hay pagos con retención para revisar.</p>`;
+    return;
+  }
+
+  const q = busquedaRetenciones.trim().toLowerCase();
+  const items = COLA_RETENCIONES.map((m, i) => ({ m, i })).filter(
+    ({ m }) => !q || [m.nombre_cliente, m.factura_numero, m.extracto_label].some((v) => (v || "").toLowerCase().includes(q))
+  );
+
+  if (!items.length) {
+    el.innerHTML = `<p class="hint">Ningún resultado coincide con "${busquedaRetenciones}" (hay ${COLA_RETENCIONES.length} para revisar).</p>`;
+    return;
+  }
+
+  // Sin `checked`: estos se tildan a mano, uno por uno, a diferencia de los
+  // de coincidencia exacta.
+  const filas = items.map(
+    ({ m, i }) => `
+    <tr>
+      <td><input type="checkbox" data-idx="${i}" class="chk-retencion"></td>
+      <td>${m.nombre_cliente}<div class="archivo">FC ${m.factura_numero}</div></td>
+      <td class="num">${fmtMoney(m.monto_factura)}</td>
+      <td class="num">${fmtMoney(m.monto)}</td>
+      <td class="num warn-text">${fmtMoney(m.retencion)} <span class="archivo">(${m.porcentaje}%)</span></td>
+      <td>${m.fecha_aprox || "—"}</td>
+      <td class="archivo">${m.extracto_label}</td>
+    </tr>`
+  );
+
+  el.innerHTML = `
+    <div class="lote-resumen">
+      <div class="lote-acciones lote-acciones-top">
+        <button id="btn-confirmar-retenciones" disabled>Confirmar 0 pagos</button>
+        <button id="btn-vaciar-retenciones" type="button" class="btn-confirmar-pago">Vaciar</button>
+        <span class="resumen-txt">${items.length} para revisar</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th></th><th>Cliente / Factura</th><th class="num">Facturado</th><th class="num">Cobrado</th><th class="num">Retención</th><th>Fecha</th><th>Extracto</th></tr></thead>
+          <tbody>${filas.join("")}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  const actualizar = () => {
+    const n = el.querySelectorAll(".chk-retencion:checked").length;
+    const btn = document.getElementById("btn-confirmar-retenciones");
+    btn.disabled = n === 0;
+    btn.textContent = `Confirmar ${n} pago${n === 1 ? "" : "s"}`;
+  };
+  el.querySelectorAll(".chk-retencion").forEach((chk) => chk.addEventListener("change", actualizar));
+
+  document.getElementById("btn-vaciar-retenciones").addEventListener("click", () => {
+    COLA_RETENCIONES = [];
+    guardarRetencionesEnStorage();
+    renderColaRetenciones();
+  });
+
+  document.getElementById("btn-confirmar-retenciones").addEventListener("click", async (e) => {
+    const btn = e.target;
+    const seleccionados = [...el.querySelectorAll(".chk-retencion:checked")].map(
+      (chk) => COLA_RETENCIONES[Number(chk.dataset.idx)]
+    );
+    if (!seleccionados.length) return;
+    btn.disabled = true;
+    btn.textContent = "Confirmando…";
+    try {
+      const resultado = await llamarBackend("consolidar_extractos", { matches: seleccionados });
+      resultado.confirmados.forEach(aplicarPagoLocal);
+      const resueltas = new Set([...resultado.confirmados.map((p) => p.factura_numero), ...resultado.omitidos]);
+      COLA_RETENCIONES = COLA_RETENCIONES.filter((m) => !resueltas.has(m.factura_numero));
+      guardarRetencionesEnStorage();
+      mostrarAviso(`Se confirmaron ${resultado.confirmados.length} pago(s) con retención.`, "ok");
+      renderColaRetenciones();
+    } catch (err) {
+      avisarError(err, "No se pudo confirmar: ");
+      btn.disabled = false;
+      actualizar();
+    }
+  });
+}
+
 document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivosExtracto([...e.target.files]));
 
 async function procesarArchivosExtracto(files) {
@@ -400,7 +517,19 @@ async function procesarArchivosExtracto(files) {
       });
       const repetidas = resultado.matches.length - agregadas;
       guardarColaEnStorage();
-      draftEl.innerHTML = `<div class="draft-card">${file.name}: ${agregadas} coincidencia${agregadas === 1 ? "" : "s"} nueva${agregadas === 1 ? "" : "s"} agregada${agregadas === 1 ? "" : "s"} a la cola.${repetidas ? ` (${repetidas} ya estaba${repetidas === 1 ? "" : "n"} en la cola)` : ""}</div>`;
+
+      let conRetencion = 0;
+      (resultado.aproximados || []).forEach((m) => {
+        // Ni en una cola ni en la otra: una factura se salda una sola vez.
+        if (COLA_RETENCIONES.some((x) => x.factura_numero === m.factura_numero)) return;
+        if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
+        COLA_RETENCIONES.push({ ...m, extracto_label: resultado.extracto_label });
+        conRetencion++;
+      });
+      guardarRetencionesEnStorage();
+      renderColaRetenciones();
+
+      draftEl.innerHTML = `<div class="draft-card">${file.name}: ${agregadas} coincidencia${agregadas === 1 ? "" : "s"} nueva${agregadas === 1 ? "" : "s"} agregada${agregadas === 1 ? "" : "s"} a la cola.${repetidas ? ` (${repetidas} ya estaba${repetidas === 1 ? "" : "n"} en la cola)` : ""}${conRetencion ? ` Además hay ${conRetencion} pago${conRetencion === 1 ? "" : "s"} con retención para revisar más abajo.` : ""}</div>`;
     } catch (err) {
       if (esSesionInvalida(err)) {
         cerrarSesion(`Tu sesión de Google expiró mientras subías extractos (se llegó a procesar ${i} de ${files.length}).`);

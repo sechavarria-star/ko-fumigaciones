@@ -58,6 +58,54 @@ function buscarCuitEnTexto_(texto, cuit) {
   return resultados;
 }
 
+// Un movimiento del resumen ocupa dos líneas:
+//   24/04/26 219254 Pago a proveedores recibido $ 260.000,00 $ 5.223.927,81
+//   Consorcio de propietarios edi 30714365432 03 02192 54
+// (fecha, comprobante, descripción, importe, saldo) + el detalle con el CUIT.
+var MOVIMIENTO_RE = /^(\d{2}\/\d{2}\/\d{2})\s+(\d+)\s+(.+?)\s+(-?\$\s?[\d.]+,\d{2})\s+(-?\$\s?[\d.]+,\d{2})$/;
+
+/**
+ * Devuelve los movimientos del extracto ya separados en campos.
+ *
+ * A diferencia de buscarCuitEnTexto_, que mira una ventana de ~250
+ * caracteres alrededor del CUIT y junta TODOS los importes que encuentre
+ * (el del movimiento, el saldo, y los de los movimientos vecinos), acá cada
+ * movimiento trae un único importe: el suyo. Eso hace falta para comparar
+ * importes que NO son exactos (retenciones), donde agarrar el importe del
+ * vecino daría un candidato inventado.
+ *
+ * `cuits` sale de buscar los CUIT de clientes conocidos en la línea de
+ * detalle. No se usa una regex genérica de 11 dígitos a propósito: la línea
+ * suele traer la altura de la calle pegada al CUIT ("Cons prop schiaffino
+ * 2029 30535588844") y una regex así se lleva los dígitos equivocados.
+ */
+function movimientosDelExtracto_(texto, cuitsConocidos) {
+  const pats = cuitsConocidos.map(function (c) {
+    return { cuit: c, re: new RegExp(cuitPatternSource_(c)) };
+  });
+
+  const lineas = texto.split('\n');
+  const movs = [];
+  for (let i = 0; i < lineas.length; i++) {
+    const m = MOVIMIENTO_RE.exec(lineas[i].trim());
+    if (!m) continue;
+
+    const detalle = i + 1 < lineas.length ? lineas[i + 1] : '';
+    const encontrados = [];
+    for (let j = 0; j < pats.length; j++) {
+      if (pats[j].re.test(detalle) || pats[j].re.test(lineas[i])) encontrados.push(pats[j].cuit);
+    }
+
+    movs.push({
+      fecha: m[1],
+      descripcion: m[3],
+      importe: parseImporte_(m[4].replace(/[$\s]/g, '')),
+      cuits: encontrados,
+    });
+  }
+  return movs;
+}
+
 // --- informe consolidado: parsear comprobantes ---
 
 var NOISE_PATTERNS = [

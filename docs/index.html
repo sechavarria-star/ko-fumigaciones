@@ -123,6 +123,17 @@
         <div id="cola-consolidacion"><p class="hint">Todavía no hay coincidencias en la cola.</p></div>
       </div>
     </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Pagos con retención — revisar</h2>
+        <input type="search" id="buscar-retenciones" class="buscador" placeholder="Buscar por cliente o factura…">
+      </div>
+      <div class="admin-body">
+        <p class="hint">Cobros donde entró <strong>menos</strong> que el total de la factura: el cliente retuvo impuestos y los depositó a la AFIP por cuenta de KO. La factura se salda igual (la retención es crédito fiscal), pero como el importe no coincide exacto <strong>hay que confirmarlos a mano</strong> — revisá que el pago corresponda a esa factura antes de tildarlo.</p>
+        <div id="cola-retenciones"><p class="hint">No hay pagos con retención para revisar.</p></div>
+      </div>
+    </div>
   </section>
 
   <section class="page" id="page-clientes" hidden>
