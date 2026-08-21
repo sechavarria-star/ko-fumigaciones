@@ -10,3 +10,8 @@ __pycache__/
 
 # OS
 .DS_Store
+
+# Token de Google cacheado por migracion/apps-script/probar.sh (es una
+# credencial: nunca va a git, y de todas formas vence en ~1h)
+.token
+.clasprc.json

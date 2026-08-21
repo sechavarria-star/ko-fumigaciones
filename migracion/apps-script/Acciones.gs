@@ -5,21 +5,25 @@
 
 // --- Tablero (lectura) ---
 function accObtenerDatos_(usuario) {
-  const clientesFilas = sbGet('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia');
+  // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
+  // filas del límite de PostgREST - ver el comentario en Supabase.gs.
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
     clientes[c.cuit] = { nombre: c.nombre, condicion_iva: c.condicion_iva, direccion: c.direccion, provincia: c.provincia };
   });
 
-  const facturas = sbGet(
+  const facturas = sbGetTodo(
     'facturas',
-    'select=numero,fecha_emision,periodo,cuit_cliente,cliente_informe,detalle,total,tipo,cuit_sugerido,nombre_sugerido'
+    'select=numero,fecha_emision,periodo,cuit_cliente,cliente_informe,detalle,total,tipo,cuit_sugerido,nombre_sugerido',
+    'numero'
   );
   facturas.forEach(function (f) { f.fecha_emision = isoADdmmaaaa_(f.fecha_emision); });
 
-  const pagos = sbGet(
+  const pagos = sbGetTodo(
     'pagos',
-    'select=factura_numero,cuit_cliente,monto,origen,extracto,tipo_movimiento,fecha_aprox,numero_transaccion,confirmado_por,fecha_confirmacion'
+    'select=factura_numero,cuit_cliente,monto,origen,extracto,tipo_movimiento,fecha_aprox,numero_transaccion,confirmado_por,fecha_confirmacion',
+    'id'
   );
 
   return { clientes: clientes, facturas: facturas, pagos: pagos, yo: usuario };
@@ -63,10 +67,13 @@ function accImportarInforme_(body, usuario) {
   const registros = parsearInforme_(texto);
   if (!registros.length) throw new ApiError(422, 'No se pudo leer ningún comprobante en ese PDF');
 
-  const clientesFilas = sbGet('clientes', 'select=cuit,nombre,direccion');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,direccion', 'cuit');
   matchearClientes_(registros, clientesFilas);
 
-  const existentes = sbGet('facturas', 'select=numero,cuit_cliente');
+  // Tiene que traer TODAS: si el listado viene truncado, las facturas que
+  // falten se ven como nuevas y el upsert les pisa el cuit_cliente ya
+  // confirmado con el que sugiera el informe.
+  const existentes = sbGetTodo('facturas', 'select=numero,cuit_cliente', 'numero');
   const existentesPorNumero = {};
   existentes.forEach(function (f) { existentesPorNumero[f.numero] = f; });
 
@@ -98,7 +105,7 @@ function accImportarInforme_(body, usuario) {
   }
 
   const totalEnBase = existentes.length + agregadas;
-  const pendientes = sbGet('facturas', 'select=numero&cuit_cliente=is.null').length;
+  const pendientes = sbGetTodo('facturas', 'select=numero&cuit_cliente=is.null', 'numero').length;
 
   return { agregadas: agregadas, actualizadas: actualizadas, total_en_base: totalEnBase, pendientes: pendientes };
 }
@@ -114,9 +121,10 @@ function accConfirmarCuit_(body, usuario) {
   const clienteFilas = sbGet('clientes', 'select=cuit&cuit=eq.' + encodeURIComponent(cuit));
   if (!clienteFilas.length) throw new ApiError(400, 'Ese CUIT no está cargado en Clientes - agregalo ahí primero');
 
-  const pendientes = sbGet(
+  const pendientes = sbGetTodo(
     'facturas',
-    'select=numero&cliente_informe=eq.' + encodeURIComponent(clienteInforme) + '&cuit_cliente=is.null'
+    'select=numero&cliente_informe=eq.' + encodeURIComponent(clienteInforme) + '&cuit_cliente=is.null',
+    'numero'
   );
   if (!pendientes.length) throw new ApiError(404, 'No hay facturas pendientes con ese nombre');
 
@@ -138,13 +146,15 @@ function accParseExtracto_(body, usuario) {
   const texto = extraerTextoPdf_(body.file_base64, body.filename || 'extracto.pdf');
 
   const nombrePorCuit = {};
-  sbGet('clientes', 'select=cuit,nombre').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });
+  sbGetTodo('clientes', 'select=cuit,nombre', 'cuit').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });
 
+  // Truncar esta lectura haría re-conciliar pagos ya cargados (falso
+  // duplicado); el UNIQUE de la base lo frena, pero mejor no llegar ahí.
   const yaPagadas = {};
-  sbGet('pagos', 'select=factura_numero').forEach(function (p) { yaPagadas[p.factura_numero] = true; });
+  sbGetTodo('pagos', 'select=factura_numero', 'id').forEach(function (p) { yaPagadas[p.factura_numero] = true; });
 
   // las facturas pendientes de validar (sin CUIT) no tienen con qué buscar
-  const pendientes = sbGet('facturas', 'select=numero,cuit_cliente,total').filter(function (f) {
+  const pendientes = sbGetTodo('facturas', 'select=numero,cuit_cliente,total', 'numero').filter(function (f) {
     return f.cuit_cliente && !yaPagadas[f.numero];
   });
 
@@ -175,7 +185,7 @@ function accConsolidarExtractos_(body, usuario) {
   if (!matches.length) throw new ApiError(400, 'No hay pagos para consolidar');
 
   const yaPagadas = {};
-  sbGet('pagos', 'select=factura_numero').forEach(function (p) { yaPagadas[p.factura_numero] = true; });
+  sbGetTodo('pagos', 'select=factura_numero', 'id').forEach(function (p) { yaPagadas[p.factura_numero] = true; });
 
   const confirmados = [];
   const omitidos = [];
@@ -223,7 +233,7 @@ function accUpsertCliente_(body, usuario) {
 
 // --- 5) usuarios (solo admin) ---
 function accListarUsuarios_() {
-  const filas = sbGet('usuarios', 'select=email,nombre,apellido,perfil');
+  const filas = sbGetTodo('usuarios', 'select=email,nombre,apellido,perfil', 'email');
   const usuarios = {};
   filas.forEach(function (u) { usuarios[u.email] = { nombre: u.nombre, apellido: u.apellido, perfil: u.perfil }; });
   return usuarios;

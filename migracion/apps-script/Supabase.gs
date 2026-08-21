@@ -22,7 +22,11 @@ function sbHeaders_(schemaHeader) {
 }
 
 function sbUrl_(tabla, query) {
-  const base = SUPABASE_URL().replace(/\/$/, '') + '/rest/v1/' + tabla;
+  // La Script Property puede venir como "https://xxx.supabase.co" o ya con el
+  // "/rest/v1" pegado (es como Supabase lo muestra en su panel) - se saca el
+  // sufijo si está para no terminar armando ".../rest/v1/rest/v1/tabla".
+  const raiz = SUPABASE_URL().replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
+  const base = raiz + '/rest/v1/' + tabla;
   return query ? base + '?' + query : base;
 }
 
@@ -50,6 +54,31 @@ function sbGet(tabla, query) {
     method: 'get',
     headers: sbHeaders_('Accept-Profile'),
   });
+}
+
+/**
+ * SELECT de una tabla entera, paginando.
+ *
+ * PostgREST corta en `max-rows` (1000 en Supabase por default) y NO avisa:
+ * devuelve 200 con las primeras 1000 filas como si fueran todas. Contra
+ * `facturas` (1192 filas) eso significaba perder 192 comprobantes en
+ * silencio, así que toda lectura de tabla completa tiene que pasar por acá.
+ *
+ * `orden` tiene que ser una columna única y estable (la PK): sin un ORDER BY
+ * determinístico, Postgres puede repetir o saltear filas entre páginas.
+ */
+function sbGetTodo(tabla, select, orden) {
+  const PAGINA = 1000;
+  const filas = [];
+  let desde = 0;
+
+  while (true) {
+    const query = select + '&order=' + orden + '&limit=' + PAGINA + '&offset=' + desde;
+    const tanda = sbGet(tabla, query);
+    filas.push.apply(filas, tanda);
+    if (tanda.length < PAGINA) return filas;
+    desde += PAGINA;
+  }
 }
 
 /** INSERT de una o varias filas. Devuelve las filas insertadas. */
