@@ -1,45 +1,77 @@
-# Poner en marcha el panel de admin
+# Cómo está armado y cómo se opera
 
-**Estado: completo (2026-08-14).** Los 4 pasos de abajo ya se hicieron:
-- Google OAuth Client ID creado en el proyecto `n8nGiwa`.
-- Token de GitHub (`ko-fumigaciones-backend`, sin expiración, solo Contents:R/W sobre este repo).
-- Backend desplegado en Render: https://ko-fumigaciones-api.onrender.com (`/api/health` responde `{"status":"ok"}`).
-- `docs/config.js` con ambos valores, pusheado.
+**Estado: migrado a Apps Script + Supabase (2026-08-20).**
 
-Falta la prueba real de punta a punta: entrar a https://sechavarria-star.github.io/ko-fumigaciones/, iniciar sesión con Google, y confirmar un pago/subir una factura para verificar que el commit a GitHub se hace bien. Se deja el resto de esta guía como referencia por si hay que recrear algo (rotar el token, agregar otro email a `ALLOWED_EMAILS`, etc.).
+El sistema ya no usa Render ni los JSON de GitHub como base de datos. Hoy son
+tres piezas:
 
----
+| pieza | qué es | dónde |
+| --- | --- | --- |
+| Frontend | sitio estático (`docs/`) | GitHub Pages: https://sechavarria-star.github.io/ko-fumigaciones/ |
+| Backend | Web App de Apps Script | `migracion/apps-script/` (script id en `.clasp.json`) |
+| Base | Postgres, schema `ko` | Supabase |
 
-El frontend y el motor de matching ya están andando. Falta esto, que solo lo podés hacer vos (necesita tu login en Google Cloud y en Render):
+El detalle de por qué el backend es así (el formato raro de request, el
+status adentro del JSON, por qué el texto de los PDFs se extrae en el
+navegador) está en `migracion/apps-script/README.md`.
 
-## 1. Google OAuth Client ID
+## Operación del día a día
 
-1. Andá a https://console.cloud.google.com/apis/credentials (usá el proyecto de GCP que corresponda a giwa-ia, o creá uno nuevo).
-2. "Crear credenciales" → "ID de cliente de OAuth" → tipo **Aplicación web**.
-3. En **Orígenes de JavaScript autorizados** agregá:
-   `https://sechavarria-star.github.io`
-4. No hace falta URI de redirección (usamos el flujo de Google Identity Services con botón, no redirect).
-5. Copiá el **Client ID** (termina en `.apps.googleusercontent.com`).
+**Publicar un cambio del frontend**: `git push`. GitHub Pages sirve `docs/`
+directo; tarda menos de un minuto.
 
-## 2. Token de GitHub para que el backend pueda commitear
+**Publicar un cambio del backend**: desde `migracion/apps-script/`
 
-1. https://github.com/settings/tokens?type=beta → "Generate new token" (fine-grained).
-2. Repository access: **Only select repositories** → `ko-fumigaciones`.
-3. Permissions → Repository permissions → **Contents: Read and write**.
-4. Generá el token y copialo (empieza con `github_pat_...`) — no se puede volver a ver después.
+```bash
+clasp push -f && clasp deploy -i AKfycbxoRncX1uo-DeuwmW84fi0LI2A9Z2AmKOIAMFMo_EGMS0Oo4l6bhhhExPplQ9RvKYqN -d "que cambio"
+```
 
-## 3. Deploy del backend en Render
+Importante el `-i <id>`: crea una **versión nueva del deployment que ya
+existe**, así la URL no cambia. Un `clasp deploy` sin `-i` genera una URL
+nueva y habría que tocar `docs/config.js`.
 
-1. https://render.com → conectá tu cuenta de GitHub.
-2. "New" → "Blueprint" → elegí el repo `ko-fumigaciones` (Render va a leer `render.yaml` solo).
-3. Cuando pida las env vars marcadas `sync: false`, completá:
-   - `GOOGLE_CLIENT_ID`: el Client ID del paso 1.
-   - `ALLOWED_EMAILS`: emails separados por coma que pueden usar el panel de admin (ej. `s.echavarria@giwa-ia.com,facturacion@kofumigacion.com`).
-   - `GITHUB_TOKEN`: el token del paso 2.
-4. Deploy. Cuando termine, copiá la URL del servicio (algo como `https://ko-fumigaciones-api.onrender.com`).
+**Probar el backend sin pasar por la web**: copiá el token en la consola del
+sitio (`copy(ID_TOKEN)` — hay que estar recién logueado, dura 1 hora) y
 
-Nota: el plan free de Render "duerme" el servicio tras 15 min sin uso — la primera acción de admin después de un rato puede tardar ~30s en responder mientras arranca de nuevo. Es solo para el panel de admin, el dashboard público no depende de esto.
+```bash
+cd migracion/apps-script && ./probar.sh obtener_datos
+```
 
-## 4. Conectar el frontend al backend
+`probar_texto.sh` manda texto ya extraído y `probar_pdf.sh` manda un PDF
+para probar el OCR de respaldo.
 
-Avisame la URL de Render y el Client ID de Google y actualizo `docs/config.js` con esos dos valores (o lo hacés vos mismo, es un archivo de 3 líneas).
+## Dar de alta a alguien
+
+Desde la pestaña **Usuarios** del panel (solo admin). Los perfiles son
+`admin`, `supervisor` y `usuario` (este último es de solo lectura).
+
+`ALLOWED_EMAILS` en las Script Properties es una allowlist de "romper
+vidrio": esos emails son admin siempre, exista o no la fila en `ko.usuarios`
+— para no quedarse afuera del propio sistema.
+
+## Configuración (por si hay que recrearla)
+
+**Script Properties** (editor de Apps Script > Project Settings):
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_ID`,
+`ALLOWED_EMAILS`.
+
+**Servicio avanzado**: Drive API (v2), para el OCR de respaldo.
+
+**Deployment**: tipo *Web app*, "Execute as: Me", "Who has access: Anyone".
+Tiene que crearse desde el editor la primera vez (Deploy > New deployment):
+`clasp deploy` sin un deployment previo genera un link de librería que da
+403.
+
+**Supabase**: schema `ko` agregado a "Exposed schemas" en Data API settings,
+y los tres SQL de `migracion/supabase/` corridos en orden (`01_schema`,
+`02_datos`, `03_grants`).
+
+**Google OAuth Client ID** (proyecto `n8nGiwa` en Google Cloud): tipo
+Aplicación web, con `https://sechavarria-star.github.io` en "Orígenes de
+JavaScript autorizados". No usa URI de redirección.
+
+## Lo que quedó de la etapa anterior
+
+`backend/` (FastAPI) y `data/*.json` siguen en el repo como referencia y
+como respaldo del estado al momento de migrar. El servicio de Render y su
+token de GitHub ya no los usa nadie: se pueden dar de baja.
