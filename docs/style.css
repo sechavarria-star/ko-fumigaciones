@@ -339,6 +339,23 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 }
 .btn-confirmar-pago:hover { border-color: var(--brand); color: var(--brand); }
 
+/* Botón secundario adentro de un panel de admin ("Volver a conciliar",
+   "Vaciar cola"). Hace falta repetir el estilo con más especificidad porque
+   `.admin-body button` le pone fondo brand y texto oscuro, y le gana: al
+   pasar el mouse el texto se volvía brand sobre fondo brand y el botón
+   quedaba en blanco. */
+.admin-body .btn-confirmar-pago {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 400;
+}
+.admin-body .btn-confirmar-pago:hover {
+  background: var(--panel-2);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
 #toasts {
   position: fixed; top: 18px; right: 18px; z-index: 200;
   display: flex; flex-direction: column; gap: 10px;
