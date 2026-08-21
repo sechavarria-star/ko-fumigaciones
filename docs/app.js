@@ -91,6 +91,16 @@ function recomputar() {
   });
   CLIENTES_VIEW.sort((a, b) => b.total_pendiente - a.total_pendiente);
 
+  // Las facturas que todavía no se pudieron asociar a un cliente igual se
+  // emitieron: tienen que estar en FACTURADO, si no el KPI no da el total del
+  // informe y parece que falta plata. Y como nadie las pagó, van enteras a
+  // PENDIENTE. Aparte siguen saliendo en el aviso naranja de arriba, que es
+  // lo que dice cuánto de eso está sin identificar.
+  const totalSinAsignar = PENDIENTES_VALIDAR.reduce((s, g) => s + g.total, 0);
+  resumen.total_facturado += totalSinAsignar;
+  resumen.total_pendiente += totalSinAsignar;
+  resumen.sin_asignar = totalSinAsignar;
+
   RESUMEN = resumen;
   renderMeta();
   renderPendientesBanner();
