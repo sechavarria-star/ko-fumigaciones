@@ -30,7 +30,7 @@ function accObtenerDatos_(usuario) {
 
   const pagos = sbGetTodo(
     'pagos',
-    'select=factura_numero,cuit_cliente,monto,origen,extracto,tipo_movimiento,fecha_aprox,numero_transaccion,confirmado_por,fecha_confirmacion',
+    'select=factura_numero,cuit_cliente,monto,retencion,origen,extracto,tipo_movimiento,fecha_aprox,numero_transaccion,confirmado_por,fecha_confirmacion',
     'id'
   );
 
