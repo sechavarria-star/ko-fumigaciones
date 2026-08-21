@@ -47,7 +47,11 @@ create table ko.pagos (
   factura_numero      text not null unique references ko.facturas (numero),
   cuit_cliente        text not null,
   monto               numeric(14, 2),
-  origen              text not null check (origen in ('manual', 'auto')),
+  -- 'auto': lo matcheo el sistema por CUIT + importe exacto.
+  -- 'manual': lo cargo una persona a mano.
+  -- 'retencion': el cliente pago menos (retuvo impuestos) y una persona lo
+  --              confirmo desde la cola de revision; lleva retencion > 0.
+  origen              text not null check (origen in ('manual', 'auto', 'retencion')),
   extracto             text,
   tipo_movimiento     text,
   fecha_aprox         text,
