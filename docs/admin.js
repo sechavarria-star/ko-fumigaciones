@@ -625,6 +625,91 @@ function file_nombre(f) {
   return f.name.length > 42 ? f.name.slice(0, 40) + "…" : f.name;
 }
 
+// Cambia el cliente de una factura mal asignada, o la devuelve a "pendientes
+// de validar" si se deja el CUIT vacío.
+//
+// Hace falta porque el matcheo automático por nombre/dirección se equivoca
+// cuando hay dos edificios en la misma calle y solo uno está cargado: le
+// cuelga las facturas del otro al que encuentra, y eso cruza los cobros de
+// dos clientes distintos.
+window.reasignarCliente = async function (factura, clienteInforme) {
+  const actual = FACTURAS.find((f) => f.numero === factura);
+  const nombreActual = actual && CLIENTES[actual.cuit_cliente] ? CLIENTES[actual.cuit_cliente].nombre : "—";
+  const cuit = prompt(
+    `Factura ${factura}\n` +
+      (clienteInforme ? `En el informe figura como: ${clienteInforme}\n` : "") +
+      `Hoy está asignada a: ${nombreActual}\n\n` +
+      `Ingresá el CUIT correcto (11 dígitos, sin guiones).\n` +
+      `Dejalo vacío para mandarla a "pendientes de validar".`,
+    actual && actual.cuit_cliente ? actual.cuit_cliente : ""
+  );
+  if (cuit === null) return; // canceló
+
+  const limpio = cuit.replace(/\D/g, "");
+  if (limpio && limpio.length !== 11) {
+    mostrarAviso("El CUIT tiene que tener 11 dígitos, sin guiones.", "error");
+    return;
+  }
+
+  try {
+    await llamarBackend("reasignar_cliente", { factura_numero: factura, cuit_cliente: limpio });
+    await cargarDatosAutenticado();
+    mostrarAviso(
+      limpio ? `Factura ${factura} reasignada.` : `Factura ${factura} mandada a pendientes de validar.`,
+      "ok"
+    );
+  } catch (err) {
+    avisarError(err, "No se pudo reasignar: ");
+  }
+};
+
+// Vuelve a conciliar contra los cobros ya guardados en la base, sin resubir
+// los PDF: los extractos son siempre los mismos, lo que cambia es el otro
+// lado (un informe nuevo, un CUIT corregido, un cliente dado de alta).
+async function reconciliarCobros() {
+  const btn = document.getElementById("btn-reconciliar");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Conciliando…";
+  }
+  try {
+    const r = await llamarBackend("reconciliar");
+
+    let agregadas = 0;
+    r.matches.forEach((m) => {
+      if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
+      COLA_CONSOLIDACION.push(m);
+      agregadas++;
+    });
+    guardarColaEnStorage();
+
+    let conRetencion = 0;
+    (r.aproximados || []).forEach((m) => {
+      if (COLA_RETENCIONES.some((x) => x.factura_numero === m.factura_numero)) return;
+      if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
+      COLA_RETENCIONES.push(m);
+      conRetencion++;
+    });
+    guardarRetencionesEnStorage();
+
+    renderColaConsolidacion();
+    renderColaRetenciones();
+    mostrarAviso(
+      agregadas || conRetencion
+        ? `Se revisaron ${r.cobros_revisados} cobros: ${agregadas} coincidencia(s) nueva(s)${conRetencion ? ` y ${conRetencion} con retención para revisar` : ""}.`
+        : `Se revisaron ${r.cobros_revisados} cobros y no apareció nada nuevo.`,
+      "ok"
+    );
+  } catch (err) {
+    avisarError(err, "No se pudo conciliar: ");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Volver a conciliar los cobros ya registrados";
+    }
+  }
+}
+
 let busquedaCola = "";
 
 document.getElementById("buscar-cola").addEventListener("input", (e) => {
@@ -634,15 +719,14 @@ document.getElementById("buscar-cola").addEventListener("input", (e) => {
 
 function renderColaConsolidacion() {
   const el = document.getElementById("cola-consolidacion");
-  const reintentar = ULTIMOS_EXTRACTOS.length
-    ? `<button id="btn-reintentar-extractos" type="button" class="btn-confirmar-pago">Volver a buscar en los ${ULTIMOS_EXTRACTOS.length} extracto${ULTIMOS_EXTRACTOS.length === 1 ? "" : "s"} ya subido${ULTIMOS_EXTRACTOS.length === 1 ? "" : "s"}</button>`
-    : "";
+  // No depende de tener los PDF a mano: los cobros ya están guardados en la
+  // base, así que se puede volver a conciliar después de un F5, desde otra
+  // máquina, o meses después.
+  const reintentar = `<button id="btn-reconciliar" type="button" class="btn-confirmar-pago">Volver a conciliar los cobros ya registrados</button>`;
 
   if (!COLA_CONSOLIDACION.length) {
-    el.innerHTML = `<p class="hint">Todavía no hay coincidencias en la cola.${
-      ULTIMOS_EXTRACTOS.length ? " Si cargaste una factura nueva después del extracto, probá de nuevo:" : ""
-    }</p>${reintentar}`;
-    document.getElementById("btn-reintentar-extractos")?.addEventListener("click", () => procesarArchivosExtracto(ULTIMOS_EXTRACTOS));
+    el.innerHTML = `<p class="hint">Todavía no hay coincidencias en la cola. Si cargaste un informe nuevo, corregiste el CUIT de un cliente o diste de alta uno que faltaba, probá de nuevo sin resubir los extractos:</p>${reintentar}`;
+    document.getElementById("btn-reconciliar").addEventListener("click", reconciliarCobros);
     return;
   }
 
@@ -685,7 +769,7 @@ function renderColaConsolidacion() {
       </div>
     </div>`;
 
-  document.getElementById("btn-reintentar-extractos")?.addEventListener("click", () => procesarArchivosExtracto(ULTIMOS_EXTRACTOS));
+  document.getElementById("btn-reconciliar")?.addEventListener("click", reconciliarCobros);
 
   const actualizarBotonConsolidar = () => {
     const n = el.querySelectorAll(".chk-consolidar:checked").length;

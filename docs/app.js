@@ -355,6 +355,15 @@ function renderModal() {
             f.estado === "pendiente" && !esNotaCredito && puedeEscribir()
               ? `<button class="btn-confirmar-pago" data-factura="${f.numero}" data-cuit="${cliente.cuit}" data-monto="${f.total}">Confirmar pago manual</button>`
               : "";
+          // El matcheo automático se equivoca cuando hay dos edificios en la
+          // misma calle y solo uno está cargado: le cuelga las facturas del
+          // otro al que encuentra, y eso cruza cobros entre dos clientes.
+          // Solo si no tiene pago: cambiarle el cliente a una factura ya
+          // cobrada dejaría el pago colgado de otro CUIT.
+          const accionReasignar =
+            f.estado === "pendiente" && puedeEscribir()
+              ? `<button class="btn-reasignar" data-factura="${f.numero}" data-informe="${(f.cliente_informe || "").replace(/"/g, "&quot;")}">Cambiar de cliente</button>`
+              : "";
           return `
             <div class="timeline-item">
               <div class="timeline-dot ${f.estado === "pagada" ? "pagada" : ""}"></div>
@@ -367,6 +376,7 @@ function renderModal() {
               </div>
               <div class="pago-info ${esNotaCredito ? "" : f.estado === "pagada" ? "ok-text" : "warn-text"}">${pagoInfo}</div>
               ${accionConfirmar}
+              ${accionReasignar}
             </div>
           `;
         })
@@ -380,6 +390,9 @@ function renderModal() {
 
   content.querySelectorAll(".btn-confirmar-pago").forEach((btn) => {
     btn.addEventListener("click", () => window.abrirFormConfirmarPago(btn.dataset));
+  });
+  content.querySelectorAll(".btn-reasignar").forEach((btn) => {
+    btn.addEventListener("click", () => window.reasignarCliente(btn.dataset.factura, btn.dataset.informe));
   });
   document.getElementById("modal-prev")?.addEventListener("click", () => {
     MODAL_IDX = (MODAL_IDX - 1 + MODAL_LISTA.length) % MODAL_LISTA.length;

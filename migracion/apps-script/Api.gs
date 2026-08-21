@@ -82,6 +82,15 @@ function despachar_(action, body, usuario) {
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accRegistrarCobros_(body, usuario);
 
+    // Vuelve a conciliar contra los cobros ya guardados, sin resubir los PDF.
+    case 'reconciliar':
+      requerirPerfil_(usuario, ['admin', 'supervisor']);
+      return accReconciliar_(body, usuario);
+
+    case 'reasignar_cliente':
+      requerirPerfil_(usuario, ['admin', 'supervisor']);
+      return accReasignarCliente_(body, usuario);
+
     case 'upsert_cliente':
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accUpsertCliente_(body, usuario);

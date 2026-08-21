@@ -158,34 +158,94 @@ function accConfirmarCuit_(body, usuario) {
 // recién consolidar_extractos confirma de verdad.
 function accParseExtracto_(body, usuario) {
   const texto = textoDelPdf_(body, 'extracto.pdf');
+  const cuits = sbGetTodo('clientes', 'select=cuit', 'cuit').map(function (c) { return c.cuit; });
 
+  const movimientos = movimientosDelExtracto_(texto, cuits).filter(function (mov) {
+    return mov.importe > 0 && mov.cuits.length && esCobro_(mov.descripcion);
+  });
+
+  const r = matchearCobros_(movimientos);
+  return { extracto_label: body.filename, matches: r.matches, aproximados: r.aproximados };
+}
+
+/**
+ * Vuelve a conciliar contra los cobros YA GUARDADOS en ko.cobros, sin
+ * necesidad de subir los PDF de nuevo.
+ *
+ * Los extractos son siempre los mismos, y ko.cobros ya tiene todo lo que el
+ * matcheo necesita (cuit, importe, fecha, tipo). Sirve para cuando cambia el
+ * otro lado de la ecuacion: se cargo un informe nuevo, se corrigio el CUIT de
+ * un cliente, o se dio de alta un cliente que faltaba.
+ */
+function accReconciliar_(body, usuario) {
+  const filas = sbGetTodo('cobros', 'select=cuit_cliente,monto,fecha,tipo_movimiento,extracto', 'id');
+
+  // Cronologico por fecha real, no por nombre de archivo: cada cobro salda la
+  // factura mas vieja impaga, asi que el orden decide a cual va. Los extractos
+  // no se solapan (verificado sobre los 7 reales), asi que ordenar por fecha
+  // reconstruye exactamente el orden en que entro la plata.
+  const movimientos = filas
+    .map(function (c) {
+      return {
+        cuits: [c.cuit_cliente],
+        importe: Number(c.monto),
+        fecha: c.fecha,
+        descripcion: c.tipo_movimiento || '',
+        extracto: c.extracto,
+        orden: fechaOrdenable_(c.fecha),
+      };
+    })
+    .sort(function (a, b) { return a.orden < b.orden ? -1 : a.orden > b.orden ? 1 : 0; });
+
+  const r = matchearCobros_(movimientos);
+  return {
+    extracto_label: 'cobros ya registrados',
+    cobros_revisados: movimientos.length,
+    matches: r.matches,
+    aproximados: r.aproximados,
+  };
+}
+
+// "13/01/26" -> "20260113", para poder ordenar sin parsear fechas.
+function fechaOrdenable_(fecha) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(fecha || '');
+  if (!m) return '99999999';
+  return '20' + m[3] + m[2] + m[1];
+}
+
+/**
+ * El corazon de la conciliacion: recibe movimientos de cobro (vengan de un
+ * PDF recien subido o de ko.cobros) y decide que factura salda cada uno.
+ *
+ * Se recorren los MOVIMIENTOS, no las facturas, y cada uno salda como mucho
+ * una. Al reves era el bug que dejaba plata mal conciliada: preguntando "hay
+ * un credito de este CUIT por $45.000?" daba que si para las 5 facturas de
+ * $45.000 impagas, aunque en el extracto hubiera un solo pago.
+ */
+function matchearCobros_(movimientos) {
   const nombrePorCuit = {};
   sbGetTodo('clientes', 'select=cuit,nombre', 'cuit').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });
 
   const pagos = sbGetTodo('pagos', 'select=factura_numero,cuit_cliente,monto,fecha_aprox,mov_firma', 'id');
-
   const yaPagadas = {};
   pagos.forEach(function (p) { yaPagadas[p.factura_numero] = true; });
 
   // Movimientos que YA se conciliaron alguna vez.
   //
-  // Sin esto, volver a subir el mismo extracto genera pagos inventados: las
-  // facturas que ese archivo ya salvó salen de la lista de pendientes, así
-  // que el mismo movimiento del banco pasa a reclamar la SIGUIENTE factura
-  // impaga. Medido sobre los 4 extractos reales: 27 pagos falsos en la
-  // segunda subida. Que la factura no se pueda pagar dos veces (el UNIQUE)
-  // no alcanza - acá el problema es el movimiento usado dos veces.
+  // Sin esto, volver a conciliar genera pagos inventados: las facturas que
+  // ese cobro ya salvo salen de la lista de pendientes, asi que el mismo
+  // movimiento pasa a reclamar la SIGUIENTE factura impaga. Medido sobre los
+  // 4 extractos reales: 27 pagos falsos en la segunda vuelta. Que la factura
+  // no se pueda pagar dos veces (el UNIQUE) no alcanza - aca el problema es
+  // el movimiento usado dos veces.
   //
-  // La firma lleva la fecha a propósito: estos clientes son abonos
-  // mensuales, o sea que un mismo CUIT paga el mismo importe todos los
-  // meses, y sin la fecha se descartarían pagos legítimos.
-  // Si el pago tiene mov_firma guardada se usa esa, que es el dato explícito.
+  // Se prefiere la mov_firma guardada, que es el dato explicito.
   // Reconstruirla desde (cuit, monto, fecha) solo sirve cuando el pago vale
   // lo mismo que el movimiento, y eso NO pasa en los pagos que cubren varias
-  // facturas: ahí cada uno vale lo de su factura. Los pagos viejos (sin la
+  // facturas: ahi cada uno vale lo de su factura. Los pagos viejos (sin la
   // columna) siguen por el camino reconstruido.
   //
-  // Un movimiento que salvó varias facturas deja varios pagos con la MISMA
+  // Un movimiento que salvo varias facturas deja varios pagos con la MISMA
   // firma; se cuenta una sola vez, porque un movimiento es uno solo.
   const usados = {};
   const grupoContado = {};
@@ -202,13 +262,13 @@ function accParseExtracto_(body, usuario) {
     usados[k] = (usados[k] || 0) + 1;
   });
 
-  // las facturas pendientes de validar (sin CUIT) no tienen con qué buscar
+  // las facturas pendientes de validar (sin CUIT) no tienen con que buscar
   const pendientes = sbGetTodo('facturas', 'select=numero,cuit_cliente,total', 'numero').filter(function (f) {
     return f.cuit_cliente && !yaPagadas[f.numero];
   });
 
-  // Más viejas primero: los números de comprobante son crecientes en el
-  // tiempo, y saldar la más vieja es el criterio contable habitual.
+  // Mas viejas primero: los numeros de comprobante son crecientes en el
+  // tiempo, y saldar la mas vieja es el criterio contable habitual.
   const porCuit = {};
   pendientes.forEach(function (f) {
     if (!porCuit[f.cuit_cliente]) porCuit[f.cuit_cliente] = [];
@@ -218,26 +278,18 @@ function accParseExtracto_(body, usuario) {
     porCuit[c].sort(function (a, b) { return a.numero < b.numero ? -1 : a.numero > b.numero ? 1 : 0; });
   });
 
-  // Se recorren los MOVIMIENTOS, no las facturas, y cada uno salda como
-  // mucho UNA. Al revés era el bug que dejaba plata mal conciliada:
-  // preguntando "¿hay un crédito de este CUIT por $45.000?" daba que sí para
-  // las 5 facturas de $45.000 impagas, aunque hubiera un solo pago.
-  const cobros = movimientosDelExtracto_(texto, Object.keys(porCuit)).filter(function (mov) {
-    return mov.importe > 0 && mov.cuits.length && esCobro_(mov.descripcion);
-  });
-
   const tomadas = {};
   const matches = [];
   const libres = [];
 
-  // Pasada 1: importe exacto. Va entera antes de la de retenciones, si no un
-  // cobro con retención podría quedarse con una factura que otro movimiento
+  // Pasada 1: importe exacto. Va entera antes de las otras, si no un cobro
+  // con retencion podria quedarse con una factura que otro movimiento
   // necesitaba para un match exacto.
-  cobros.forEach(function (mov) {
+  movimientos.forEach(function (mov) {
     for (let c = 0; c < mov.cuits.length; c++) {
       const cuit = mov.cuits[c];
       const k = firmaMovimiento_(cuit, mov.importe, mov.fecha);
-      if (usados[k]) { usados[k] -= 1; return; } // ya conciliado en otra subida
+      if (usados[k]) { usados[k] -= 1; return; } // ya conciliado antes
 
       const f = elegirFactura_(porCuit[cuit], tomadas, function (f) {
         return Math.abs(f.total - mov.importe) < 0.005;
@@ -251,6 +303,7 @@ function accParseExtracto_(body, usuario) {
         monto: f.total,
         tipo_movimiento: mov.descripcion,
         fecha_aprox: mov.fecha,
+        extracto_label: mov.extracto || null,
         mov_firma: k,
       });
       return;
@@ -261,14 +314,8 @@ function accParseExtracto_(body, usuario) {
   // Pasada 2: un cobro que salda VARIAS facturas juntas.
   //
   // Hay clientes que dejan pasar dos o tres meses y despues pagan todo en una
-  // transferencia. Ese importe no coincide con ninguna factura sola, pero sí
-  // con la suma de las mas viejas impagas. Se prueban hasta 6 seguidas.
-  //
-  // Se exige coincidencia al centavo, y aun asi puede haber mas de un
-  // subconjunto que de el mismo total; se toma el que arranca en la mas
-  // vieja, que es el criterio contable habitual. Como el saldo del cliente
-  // ahora sale de ko.cobros y no de esta imputacion, elegir un subconjunto
-  // equivocado cambia que factura figura cobrada, no cuanto debe.
+  // transferencia. Ese importe no coincide con ninguna factura sola, pero si
+  // con la suma de las mas viejas impagas.
   const libres2 = [];
   libres.forEach(function (mov) {
     let saldo = false;
@@ -286,8 +333,8 @@ function accParseExtracto_(body, usuario) {
           monto: f.total,
           tipo_movimiento: mov.descripcion,
           fecha_aprox: mov.fecha,
+          extracto_label: mov.extracto || null,
           mov_firma: k,
-          // para que el frontend pueda mostrar "1 de 3 facturas de un mismo pago"
           grupo_total: mov.importe,
           grupo_cantidad: grupo.length,
         });
@@ -297,8 +344,8 @@ function accParseExtracto_(body, usuario) {
     if (!saldo) libres2.push(mov);
   });
 
-  // Pasada 3: cobros con retención, sobre lo que quedó sin usar.
-  // Nunca se confirman solos - van a una cola de revisión en el frontend.
+  // Pasada 3: cobros con retencion, sobre lo que quedo sin usar.
+  // Nunca se confirman solos - van a una cola de revision en el frontend.
   const aproximados = [];
   libres2.forEach(function (mov) {
     for (let c = 0; c < mov.cuits.length; c++) {
@@ -320,13 +367,14 @@ function accParseExtracto_(body, usuario) {
         porcentaje: Math.round((retencion / f.total) * 10000) / 100,
         tipo_movimiento: mov.descripcion,
         fecha_aprox: mov.fecha,
+        extracto_label: mov.extracto || null,
         mov_firma: firmaMovimiento_(cuit, mov.importe, mov.fecha),
       });
       return;
     }
   });
 
-  return { extracto_label: body.filename, matches: matches, aproximados: aproximados };
+  return { matches: matches, aproximados: aproximados };
 }
 
 /**
@@ -352,6 +400,42 @@ function elegirGrupoQueSuma_(facturas, tomadas, objetivo) {
     }
   }
   return null;
+}
+
+/**
+ * Cambia el cliente de una factura, o la devuelve a "pendientes de validar"
+ * si no se manda CUIT.
+ *
+ * El matcheo automatico por nombre/direccion se equivoca cuando hay dos
+ * edificios en la misma calle y solo uno esta cargado: le cuelga las facturas
+ * del otro al que encuentra. Eso cruza cobros entre dos clientes distintos,
+ * y hasta ahora no habia forma de arreglarlo desde la app.
+ */
+function accReasignarCliente_(body, usuario) {
+  const numero = body.factura_numero;
+  const cuit = (body.cuit_cliente || '').trim();
+  if (!numero) throw new ApiError(400, 'Falta factura_numero');
+
+  const fila = sbGet('facturas', 'select=numero&numero=eq.' + encodeURIComponent(numero));
+  if (!fila.length) throw new ApiError(404, 'No existe esa factura');
+
+  // Si tiene un pago imputado, cambiarle el cliente dejaria el pago colgado
+  // de otro CUIT: primero hay que decidir que pasa con ese pago.
+  const pago = sbGet('pagos', 'select=factura_numero&factura_numero=eq.' + encodeURIComponent(numero));
+  if (pago.length) {
+    throw new ApiError(409, 'Esa factura ya tiene un pago imputado - no se puede cambiar de cliente sin revisar el pago primero');
+  }
+
+  if (cuit) {
+    if (!/^\d{11}$/.test(cuit)) throw new ApiError(400, 'El CUIT tiene que tener 11 digitos');
+    const cliente = sbGet('clientes', 'select=cuit&cuit=eq.' + encodeURIComponent(cuit));
+    if (!cliente.length) throw new ApiError(400, 'Ese CUIT no esta cargado en Clientes - agregalo ahi primero');
+  }
+
+  // Se limpia tambien la sugerencia: si quedara la vieja, la pantalla de
+  // Pendientes volveria a proponer el CUIT equivocado.
+  const cambios = { cuit_cliente: cuit || null, cuit_sugerido: null, nombre_sugerido: null };
+  return sbUpdate('facturas', 'numero=eq.' + encodeURIComponent(numero), cambios)[0];
 }
 
 /**
