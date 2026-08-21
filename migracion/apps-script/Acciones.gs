@@ -162,7 +162,7 @@ function accParseExtracto_(body, usuario) {
   const nombrePorCuit = {};
   sbGetTodo('clientes', 'select=cuit,nombre', 'cuit').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });
 
-  const pagos = sbGetTodo('pagos', 'select=factura_numero,cuit_cliente,monto,fecha_aprox', 'id');
+  const pagos = sbGetTodo('pagos', 'select=factura_numero,cuit_cliente,monto,fecha_aprox,mov_firma', 'id');
 
   const yaPagadas = {};
   pagos.forEach(function (p) { yaPagadas[p.factura_numero] = true; });
@@ -179,10 +179,26 @@ function accParseExtracto_(body, usuario) {
   // La firma lleva la fecha a propósito: estos clientes son abonos
   // mensuales, o sea que un mismo CUIT paga el mismo importe todos los
   // meses, y sin la fecha se descartarían pagos legítimos.
+  // Si el pago tiene mov_firma guardada se usa esa, que es el dato explícito.
+  // Reconstruirla desde (cuit, monto, fecha) solo sirve cuando el pago vale
+  // lo mismo que el movimiento, y eso NO pasa en los pagos que cubren varias
+  // facturas: ahí cada uno vale lo de su factura. Los pagos viejos (sin la
+  // columna) siguen por el camino reconstruido.
+  //
+  // Un movimiento que salvó varias facturas deja varios pagos con la MISMA
+  // firma; se cuenta una sola vez, porque un movimiento es uno solo.
   const usados = {};
+  const grupoContado = {};
   pagos.forEach(function (p) {
-    if (!p.fecha_aprox) return;
-    const k = firmaMovimiento_(p.cuit_cliente, p.monto, p.fecha_aprox);
+    let k = p.mov_firma;
+    if (!k) {
+      if (!p.fecha_aprox) return;
+      k = firmaMovimiento_(p.cuit_cliente, p.monto, p.fecha_aprox);
+      usados[k] = (usados[k] || 0) + 1;
+      return;
+    }
+    if (grupoContado[k]) return;
+    grupoContado[k] = true;
     usados[k] = (usados[k] || 0) + 1;
   });
 
@@ -235,16 +251,56 @@ function accParseExtracto_(body, usuario) {
         monto: f.total,
         tipo_movimiento: mov.descripcion,
         fecha_aprox: mov.fecha,
+        mov_firma: k,
       });
       return;
     }
     libres.push(mov);
   });
 
-  // Pasada 2: cobros con retención, solo sobre los movimientos que sobraron.
+  // Pasada 2: un cobro que salda VARIAS facturas juntas.
+  //
+  // Hay clientes que dejan pasar dos o tres meses y despues pagan todo en una
+  // transferencia. Ese importe no coincide con ninguna factura sola, pero sí
+  // con la suma de las mas viejas impagas. Se prueban hasta 6 seguidas.
+  //
+  // Se exige coincidencia al centavo, y aun asi puede haber mas de un
+  // subconjunto que de el mismo total; se toma el que arranca en la mas
+  // vieja, que es el criterio contable habitual. Como el saldo del cliente
+  // ahora sale de ko.cobros y no de esta imputacion, elegir un subconjunto
+  // equivocado cambia que factura figura cobrada, no cuanto debe.
+  const libres2 = [];
+  libres.forEach(function (mov) {
+    let saldo = false;
+    for (let c = 0; c < mov.cuits.length && !saldo; c++) {
+      const cuit = mov.cuits[c];
+      const grupo = elegirGrupoQueSuma_(porCuit[cuit], tomadas, mov.importe);
+      if (!grupo) continue;
+      const k = firmaMovimiento_(cuit, mov.importe, mov.fecha);
+      grupo.forEach(function (f) {
+        tomadas[f.numero] = true;
+        matches.push({
+          factura_numero: f.numero,
+          cuit_cliente: cuit,
+          nombre_cliente: nombrePorCuit[cuit] || cuit,
+          monto: f.total,
+          tipo_movimiento: mov.descripcion,
+          fecha_aprox: mov.fecha,
+          mov_firma: k,
+          // para que el frontend pueda mostrar "1 de 3 facturas de un mismo pago"
+          grupo_total: mov.importe,
+          grupo_cantidad: grupo.length,
+        });
+      });
+      saldo = true;
+    }
+    if (!saldo) libres2.push(mov);
+  });
+
+  // Pasada 3: cobros con retención, sobre lo que quedó sin usar.
   // Nunca se confirman solos - van a una cola de revisión en el frontend.
   const aproximados = [];
-  libres.forEach(function (mov) {
+  libres2.forEach(function (mov) {
     for (let c = 0; c < mov.cuits.length; c++) {
       const cuit = mov.cuits[c];
       const f = elegirFactura_(porCuit[cuit], tomadas, function (f) {
@@ -264,12 +320,38 @@ function accParseExtracto_(body, usuario) {
         porcentaje: Math.round((retencion / f.total) * 10000) / 100,
         tipo_movimiento: mov.descripcion,
         fecha_aprox: mov.fecha,
+        mov_firma: firmaMovimiento_(cuit, mov.importe, mov.fecha),
       });
       return;
     }
   });
 
   return { extracto_label: body.filename, matches: matches, aproximados: aproximados };
+}
+
+/**
+ * Busca un tramo de facturas consecutivas (las mas viejas primero) cuya suma
+ * sea exactamente `objetivo`. Devuelve el tramo o null.
+ *
+ * Solo tramos consecutivos, no cualquier combinacion: un cliente al dia paga
+ * en orden, y probar todos los subconjuntos multiplicaria las coincidencias
+ * casuales - con 14 facturas hay 16.383 combinaciones, y alguna va a dar el
+ * total por azar.
+ */
+function elegirGrupoQueSuma_(facturas, tomadas, objetivo) {
+  if (!facturas) return null;
+  const MAX = 6; // mas de medio año junto ya no es un atraso, es otra cosa
+  const libres = facturas.filter(function (f) { return !tomadas[f.numero] && f.total > 0; });
+
+  for (let ini = 0; ini < libres.length; ini++) {
+    let suma = 0;
+    for (let n = ini; n < Math.min(ini + MAX, libres.length); n++) {
+      suma += libres[n].total;
+      if (suma > objetivo + 0.005) break; // ya se paso: alargar no ayuda
+      if (n > ini && Math.abs(suma - objetivo) < 0.005) return libres.slice(ini, n + 1);
+    }
+  }
+  return null;
 }
 
 /**
@@ -361,6 +443,10 @@ function accConsolidarExtractos_(body, usuario) {
       // considera saldada igual: la retención es crédito fiscal).
       retencion: m.retencion || 0,
       origen: m.retencion ? 'retencion' : 'auto',
+      // qué movimiento del extracto lo originó: es lo que evita volver a
+      // usar el mismo cobro si se resube el archivo, y ademas agrupa los
+      // pagos que se saldaron con una misma transferencia.
+      mov_firma: m.mov_firma || null,
       extracto: m.extracto_label || null,
       tipo_movimiento: m.tipo_movimiento || null,
       fecha_aprox: m.fecha_aprox || null,
