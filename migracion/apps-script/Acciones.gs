@@ -61,8 +61,7 @@ function accConfirmarPago_(body, usuario) {
 // por número de comprobante, nunca reemplaza toda la tabla. Si una factura
 // ya tenía el CUIT confirmado (a mano o de una carga previa), se conserva.
 function accImportarInforme_(body, usuario) {
-  if (!body.file_base64) throw new ApiError(422, 'Falta el archivo');
-  const texto = extraerTextoPdf_(body.file_base64, body.filename || 'informe.pdf');
+  const texto = textoDelPdf_(body, 'informe.pdf');
 
   const registros = parsearInforme_(texto);
   if (!registros.length) throw new ApiError(422, 'No se pudo leer ningún comprobante en ese PDF');
@@ -142,8 +141,7 @@ function accConfirmarCuit_(body, usuario) {
 // Solo calcula candidatos (CUIT + monto exacto) - no escribe nada. El
 // frontend acumula la cola y recién /consolidar confirma de verdad.
 function accParseExtracto_(body, usuario) {
-  if (!body.file_base64) throw new ApiError(422, 'Falta el archivo');
-  const texto = extraerTextoPdf_(body.file_base64, body.filename || 'extracto.pdf');
+  const texto = textoDelPdf_(body, 'extracto.pdf');
 
   const nombrePorCuit = {};
   sbGetTodo('clientes', 'select=cuit,nombre', 'cuit').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });

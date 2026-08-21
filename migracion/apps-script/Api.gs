@@ -73,6 +73,14 @@ function despachar_(action, body, usuario) {
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accUpsertCliente_(body, usuario);
 
+    // Diagnóstico: devuelve el texto crudo que sacó el OCR del PDF que
+    // mandó el que llama, sin tocar la base. Los regex de PdfParse.gs están
+    // afinados contra el texto de pdfplumber, y el de Drive no sale igual -
+    // sin poder ver el texto, cualquier diferencia de matcheo es a ciegas.
+    case 'extraer_texto':
+      requerirPerfil_(usuario, ['admin']);
+      return { texto: extraerTextoPdf_(body.file_base64, body.filename || 'archivo.pdf') };
+
     case 'listar_usuarios':
       requerirPerfil_(usuario, ['admin']);
       return accListarUsuarios_();
