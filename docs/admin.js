@@ -431,7 +431,7 @@ function renderColaRetenciones() {
   const filas = items.map(
     ({ m, i }) => `
     <tr>
-      <td><input type="checkbox" data-idx="${i}" class="chk-retencion"></td>
+      <td><input type="checkbox" data-idx="${i}" class="chk-retencion" aria-label="Confirmar ${m.factura_numero}"></td>
       <td>${m.nombre_cliente}<div class="archivo">FC ${m.factura_numero}</div></td>
       <td class="num">${fmtMoney(m.monto_factura)}</td>
       <td class="num">${fmtMoney(m.monto)}</td>
@@ -450,18 +450,37 @@ function renderColaRetenciones() {
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th></th><th>Cliente / Factura</th><th class="num">Facturado</th><th class="num">Cobrado</th><th class="num">Retención</th><th>Fecha</th><th>Extracto</th></tr></thead>
+          <thead><tr>
+            <th><input type="checkbox" id="chk-retenciones-todas" title="Seleccionar todas las que se están mostrando"></th>
+            <th>Cliente / Factura</th><th class="num">Facturado</th><th class="num">Cobrado</th><th class="num">Retención</th><th>Fecha</th><th>Extracto</th>
+          </tr></thead>
           <tbody>${filas.join("")}</tbody>
         </table>
       </div>
     </div>`;
 
+  const todas = document.getElementById("chk-retenciones-todas");
+
   const actualizar = () => {
-    const n = el.querySelectorAll(".chk-retencion:checked").length;
+    const cajas = [...el.querySelectorAll(".chk-retencion")];
+    const n = cajas.filter((c) => c.checked).length;
     const btn = document.getElementById("btn-confirmar-retenciones");
     btn.disabled = n === 0;
     btn.textContent = `Confirmar ${n} pago${n === 1 ? "" : "s"}`;
+    // El estado intermedio evita el "todo o nada": si tildaste algunas a
+    // mano, el de arriba lo muestra en vez de decir que está todo elegido.
+    todas.checked = n > 0 && n === cajas.length;
+    todas.indeterminate = n > 0 && n < cajas.length;
   };
+
+  // Marca solo lo que se está mostrando, no toda la cola: si hay un filtro
+  // puesto, tildar "todas" y confirmar sin querer lo que está escondido
+  // sería justo lo contrario de una pantalla de revisión.
+  todas.addEventListener("change", () => {
+    el.querySelectorAll(".chk-retencion").forEach((c) => (c.checked = todas.checked));
+    actualizar();
+  });
+
   el.querySelectorAll(".chk-retencion").forEach((chk) => chk.addEventListener("change", actualizar));
 
   document.getElementById("btn-vaciar-retenciones").addEventListener("click", () => {
