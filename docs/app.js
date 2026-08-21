@@ -108,6 +108,12 @@ function recomputar() {
     // sale la diferencia.
     const a_cuenta = Math.max(0, cobrado_banco - total_facturado);
 
+    // Clientes que retienen impuestos: transfieren menos que el total de la
+    // factura y depositan la diferencia a la AFIP por cuenta de KO. Conviene
+    // tenerlos identificados porque la retención es crédito fiscal y hay que
+    // reclamar el certificado.
+    const retenido = c.facturas.reduce((s, f) => s + ((f.pago && f.pago.retencion) || 0), 0);
+
     resumen.total_facturado += total_facturado;
     resumen.total_cobrado += total_cobrado;
     resumen.total_pendiente += total_facturado - total_cobrado;
@@ -123,6 +129,7 @@ function recomputar() {
       total_imputado,
       cobrado_banco,
       a_cuenta,
+      retenido,
       total_pagado: total_cobrado,
       total_pendiente: total_facturado - total_cobrado,
     };
@@ -270,7 +277,11 @@ function renderTabla() {
       const alDia = c.total_pendiente === 0;
       return `
         <tr data-cuit="${c.cuit}">
-          <td class="nombre">${c.nombre}</td>
+          <td class="nombre">${c.nombre}${
+            c.retenido
+              ? `<span class="marca-retencion" title="Retiene impuestos · ${fmtMoney(c.retenido)} retenidos">*</span>`
+              : ""
+          }</td>
           <td class="cuit">${formatCuit(c.cuit)}</td>
           <td class="num">${fmtMoney(c.total_facturado)}</td>
           <td class="num">${fmtMoney(c.total_pagado)}${
@@ -289,6 +300,10 @@ function renderTabla() {
       `;
     })
     .join("");
+
+  // La referencia del asterisco solo si hay alguno a la vista: si no, es una
+  // aclaración de algo que no se ve.
+  document.getElementById("referencia-retencion").hidden = !clientes.some((c) => c.retenido);
 
   tbody.querySelectorAll("tr").forEach((tr) => {
     tr.addEventListener("click", () => abrirModal(tr.dataset.cuit));
@@ -363,8 +378,10 @@ function renderModal() {
     </div>
     <div class="modal-head">
       <div>
-        <h3>${cliente.nombre}</h3>
-        <div class="modal-cuit">CUIT ${formatCuit(cliente.cuit)}</div>
+        <h3>${cliente.nombre}${cliente.retenido ? `<span class="marca-retencion">*</span>` : ""}</h3>
+        <div class="modal-cuit">CUIT ${formatCuit(cliente.cuit)}${
+          cliente.retenido ? ` · retuvo ${fmtMoney(cliente.retenido)}` : ""
+        }</div>
       </div>
       <span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span>
     </div>

@@ -437,3 +437,22 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   background: var(--ok);
   border-color: var(--ok);
 }
+
+/* Marca de "este cliente retiene impuestos". Turquesa y en negrita para que
+   se vea sin agrandar la fila; el detalle va en el title y en la referencia
+   debajo de la tabla. */
+.marca-retencion {
+  color: var(--brand);
+  font-weight: 700;
+  margin-left: 3px;
+  cursor: help;
+}
+.referencia {
+  margin: 0;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.referencia .marca-retencion { cursor: default; }
