@@ -496,28 +496,54 @@ function renderColaRetenciones() {
 
 document.getElementById("input-extracto").addEventListener("change", (e) => procesarArchivosExtracto([...e.target.files]));
 
-async function procesarArchivosExtracto(files) {
-  if (!files.length) return;
+const MESES_ES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+// El orden importa de verdad, no es cosmético: cada cobro salda la factura
+// MÁS VIEJA impaga, así que si abril se procesa antes que enero, el pago de
+// abril se lleva la factura de enero y después la de enero no encuentra nada.
+// El navegador entrega los archivos en el orden en que se los eligió, así que
+// se reordenan por el mes que diga el nombre (los que no lo digan quedan al
+// final, en el orden en que vinieron).
+function ordenarPorMes(files) {
+  return files
+    .map((f, i) => {
+      const nombre = f.name.toLowerCase();
+      const mes = MESES_ES.findIndex((m) => nombre.includes(m));
+      return { f, i, mes: mes === -1 ? 99 : mes };
+    })
+    .sort((a, b) => a.mes - b.mes || a.i - b.i)
+    .map((x) => x.f);
+}
+
+async function procesarArchivosExtracto(archivos) {
+  if (!archivos.length) return;
   const draftEl = document.getElementById("extracto-draft");
+  const files = ordenarPorMes(archivos);
 
   files.forEach((f) => {
     if (!ULTIMOS_EXTRACTOS.some((x) => x.name === f.name && x.size === f.size)) ULTIMOS_EXTRACTOS.push(f);
   });
 
+  // Con varios extractos hay que consolidar entre archivo y archivo: el
+  // backend elige la factura más vieja impaga, y si no se confirma lo de
+  // enero antes de leer febrero, los dos meses reclaman la MISMA factura y
+  // uno de los pagos se pierde. Con un solo archivo no hace falta, y ahí
+  // conviene dejar la cola para que la revises antes de confirmar.
+  const enLote = files.length > 1;
+  const hechas = [];
+
   for (let i = 0; i < files.length; i++) {
-    draftEl.innerHTML = `<div class="draft-card">Leyendo extracto ${i + 1} de ${files.length}…</div>`;
+    draftEl.innerHTML = `<div class="draft-card">Leyendo extracto ${i + 1} de ${files.length} (${file_nombre(files[i])})…</div>`;
     const file = files[i];
     try {
       const resultado = await llamarBackend("parse_extracto", await payloadDePdf(file));
-      let agregadas = 0;
-      resultado.matches.forEach((m) => {
-        if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
-        COLA_CONSOLIDACION.push({ ...m, extracto_label: resultado.extracto_label });
-        agregadas++;
-      });
-      const repetidas = resultado.matches.length - agregadas;
-      guardarColaEnStorage();
+      const exactos = resultado.matches.map((m) => ({ ...m, extracto_label: resultado.extracto_label }));
 
+      // Las retenciones NUNCA se confirman solas, ni en lote: van a la cola
+      // de revisión para que alguien las mire.
       let conRetencion = 0;
       (resultado.aproximados || []).forEach((m) => {
         // Ni en una cola ni en la otra: una factura se salda una sola vez.
@@ -529,18 +555,47 @@ async function procesarArchivosExtracto(files) {
       guardarRetencionesEnStorage();
       renderColaRetenciones();
 
-      draftEl.innerHTML = `<div class="draft-card">${file.name}: ${agregadas} coincidencia${agregadas === 1 ? "" : "s"} nueva${agregadas === 1 ? "" : "s"} agregada${agregadas === 1 ? "" : "s"} a la cola.${repetidas ? ` (${repetidas} ya estaba${repetidas === 1 ? "" : "n"} en la cola)` : ""}${conRetencion ? ` Además hay ${conRetencion} pago${conRetencion === 1 ? "" : "s"} con retención para revisar más abajo.` : ""}</div>`;
+      if (enLote) {
+        let confirmados = 0;
+        if (exactos.length) {
+          draftEl.innerHTML = `<div class="draft-card">${file.name}: consolidando ${exactos.length} pago(s)…</div>`;
+          const c = await llamarBackend("consolidar_extractos", { matches: exactos });
+          c.confirmados.forEach(aplicarPagoLocal);
+          confirmados = c.confirmados.length;
+        }
+        hechas.push(`${file.name}: ${confirmados} pago(s) consolidado(s)${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`);
+      } else {
+        let agregadas = 0;
+        exactos.forEach((m) => {
+          if (COLA_CONSOLIDACION.some((x) => x.factura_numero === m.factura_numero)) return;
+          COLA_CONSOLIDACION.push(m);
+          agregadas++;
+        });
+        const repetidas = exactos.length - agregadas;
+        guardarColaEnStorage();
+        hechas.push(
+          `${file.name}: ${agregadas} coincidencia(s) nueva(s) en la cola${repetidas ? ` (${repetidas} ya estaba(n))` : ""}${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`
+        );
+      }
+
+      draftEl.innerHTML = hechas.map((t) => `<div class="draft-card">${t}</div>`).join("");
     } catch (err) {
       if (esSesionInvalida(err)) {
         cerrarSesion(`Tu sesión de Google expiró mientras subías extractos (se llegó a procesar ${i} de ${files.length}).`);
         renderColaConsolidacion();
         return;
       }
-      draftEl.innerHTML = `<div class="draft-card warn-text">${file.name}: no se pudo leer - ${err.message}</div>`;
+      hechas.push(`<span class="warn-text">${file.name}: no se pudo leer - ${err.message}</span>`);
+      draftEl.innerHTML = hechas.map((t) => `<div class="draft-card">${t}</div>`).join("");
     }
   }
+
   document.getElementById("input-extracto").value = "";
   renderColaConsolidacion();
+}
+
+function file_nombre(f) {
+  return f.name.length > 42 ? f.name.slice(0, 40) + "…" : f.name;
 }
 
 let busquedaCola = "";

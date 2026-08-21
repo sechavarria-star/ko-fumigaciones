@@ -105,7 +105,8 @@
     <div class="panel">
       <div class="panel-head"><h2>Subir extracto</h2></div>
       <div class="admin-body">
-        <p class="hint">Subí uno o más PDFs de extracto bancario. Se buscan coincidencias de CUIT + monto contra las facturas pendientes y quedan en la cola de abajo - el texto crudo del extracto no se guarda en ningún lado, y nada se concilia hasta que apretás "Consolidar".</p>
+        <p class="hint">Subí uno o más PDFs de extracto bancario. Se buscan coincidencias de CUIT + monto contra las facturas pendientes; el texto crudo del extracto no se guarda en ningún lado.</p>
+        <p class="hint"><strong>Con un solo archivo</strong> las coincidencias quedan en la cola de abajo y no se concilia nada hasta que apretás "Consolidar". <strong>Con varios</strong> se ordenan por mes y se van consolidando de a uno: cada cobro salda la factura más vieja impaga, así que si no se confirma enero antes de leer febrero los dos meses reclaman la misma factura. Los pagos con retención nunca se confirman solos - van siempre a la revisión de más abajo.</p>
         <label class="dropzone" id="dropzone-extracto" for="input-extracto">
           <span>Arrastrá uno o más PDFs acá, o hacé clic para elegirlos</span>
           <input type="file" id="input-extracto" accept="application/pdf" multiple hidden>
