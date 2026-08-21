@@ -156,23 +156,50 @@ function accParseExtracto_(body, usuario) {
     return f.cuit_cliente && !yaPagadas[f.numero];
   });
 
-  const matches = [];
+  // Se recorren los MOVIMIENTOS, no las facturas, y cada movimiento salda
+  // como mucho UNA factura.
+  //
+  // Al revés (por factura) era el bug que dejaba plata mal conciliada: estos
+  // clientes son abonos mensuales, o sea que pagan el mismo importe todos
+  // los meses. Preguntando "¿hay un crédito de este CUIT por $45.000?" daba
+  // que sí para las 5 facturas de $45.000 que el consorcio tenía impagas,
+  // aunque en el extracto hubiera un solo pago. Contra los 4 extractos
+  // disponibles, 29 facturas ($3.050.500) se habrían dado por cobradas sin
+  // un pago que las respalde.
+  //
+  // Se asigna a la factura más vieja impaga (los números de comprobante son
+  // crecientes en el tiempo), que es el criterio contable habitual.
+  const porCuit = {};
   pendientes.forEach(function (f) {
-    const hits = buscarCuitEnTexto_(texto, f.cuit_cliente);
-    for (let i = 0; i < hits.length; i++) {
-      const h = hits[i];
-      if (h.tipo && h.importes.indexOf(f.total) !== -1) {
+    if (!porCuit[f.cuit_cliente]) porCuit[f.cuit_cliente] = [];
+    porCuit[f.cuit_cliente].push(f);
+  });
+
+  const matches = [];
+  Object.keys(porCuit).forEach(function (cuit) {
+    const facturas = porCuit[cuit].sort(function (a, b) {
+      return a.numero < b.numero ? -1 : a.numero > b.numero ? 1 : 0;
+    });
+    const tomadas = {};
+
+    buscarCuitEnTexto_(texto, cuit).forEach(function (h) {
+      if (!h.tipo) return; // no es un movimiento de cobro
+      for (let i = 0; i < facturas.length; i++) {
+        const f = facturas[i];
+        if (tomadas[f.numero]) continue;
+        if (h.importes.indexOf(f.total) === -1) continue;
+        tomadas[f.numero] = true;
         matches.push({
           factura_numero: f.numero,
-          cuit_cliente: f.cuit_cliente,
-          nombre_cliente: nombrePorCuit[f.cuit_cliente] || f.cuit_cliente,
+          cuit_cliente: cuit,
+          nombre_cliente: nombrePorCuit[cuit] || cuit,
           monto: f.total,
           tipo_movimiento: h.tipo,
           fecha_aprox: h.fecha,
         });
-        break; // una coincidencia por factura alcanza
+        return; // este movimiento ya se usó: no puede saldar otra factura
       }
-    }
+    });
   });
 
   return { extracto_label: body.filename, matches: matches };
