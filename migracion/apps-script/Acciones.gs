@@ -34,13 +34,22 @@ function accObtenerDatos_(usuario) {
     'id'
   );
 
-  // Cuenta corriente: lo que entro al banco por cliente, imputado o no. Se
-  // manda agregado (no fila por fila) porque el tablero solo necesita el
-  // total por CUIT y son ~900 movimientos.
-  const cobros = {};
-  sbGetTodo('cobros', 'select=cuit_cliente,monto', 'id').forEach(function (c) {
-    cobros[c.cuit_cliente] = (cobros[c.cuit_cliente] || 0) + Number(c.monto);
-  });
+  // Cuenta corriente: lo que entro al banco por cliente, imputado o no.
+  //
+  // Va el detalle y no solo el total porque el estado de cuenta de cada
+  // cliente los muestra intercalados con las facturas. Sin eso, un consorcio
+  // que paga de a poco (parciales que no coinciden con ninguna factura) se
+  // veia como si nunca hubiera pagado nada, aunque el total dijera otra cosa.
+  const cobros = sbGetTodo('cobros', 'select=cuit_cliente,monto,fecha,tipo_movimiento,extracto', 'id')
+    .map(function (c) {
+      return {
+        cuit_cliente: c.cuit_cliente,
+        monto: Number(c.monto),
+        fecha: c.fecha,
+        tipo_movimiento: c.tipo_movimiento,
+        extracto: c.extracto,
+      };
+    });
 
   return { clientes: clientes, facturas: facturas, pagos: pagos, cobros: cobros, yo: usuario };
 }

@@ -7,7 +7,8 @@ const fmtMoney = (n) =>
 let CLIENTES = {};
 let FACTURAS = [];
 let PAGOS = [];
-// Total entrado al banco por CUIT, se haya imputado a una factura o no.
+// Cobros del banco (detalle), y el total por CUIT derivado de ellos.
+let COBROS_DETALLE = [];
 let COBROS = {};
 let CLIENTES_VIEW = [];
 let PENDIENTES_VALIDAR = []; // facturas del informe sin CUIT asociado, agrupadas por cliente_informe
@@ -28,7 +29,11 @@ async function cargarDatosAutenticado() {
   CLIENTES = datos.clientes;
   FACTURAS = datos.facturas;
   PAGOS = datos.pagos;
-  COBROS = datos.cobros || {};
+  COBROS_DETALLE = datos.cobros || [];
+  COBROS = {};
+  COBROS_DETALLE.forEach((c) => {
+    COBROS[c.cuit_cliente] = (COBROS[c.cuit_cliente] || 0) + c.monto;
+  });
   YO = datos.yo;
   recomputar();
 }
@@ -301,6 +306,13 @@ function parseFechaAr(f) {
   return new Date(a, m - 1, d);
 }
 
+// Las fechas de los extractos vienen en dd/mm/aa (dos dígitos de año).
+function parseFechaCorta(f) {
+  const [d, m, a] = (f || "").split("/").map(Number);
+  if (!d || !m) return new Date(0);
+  return new Date(2000 + a, m - 1, d);
+}
+
 function abrirModal(cuit) {
   const lista = clientesFiltrados();
   const idx = lista.findIndex((c) => c.cuit === cuit);
@@ -319,12 +331,28 @@ function renderModal() {
   const content = document.getElementById("modal-content");
   const alDia = cliente.total_pendiente === 0;
 
-  const facturasOrden = [...cliente.facturas].sort((a, b) => parseFechaAr(a.fecha_emision) - parseFechaAr(b.fecha_emision));
+  // Cuenta corriente de verdad: facturas y cobros mezclados por fecha, con
+  // saldo corrido.
+  //
+  // Antes solo se listaban las facturas, y el cobro aparecía únicamente si se
+  // había podido imputar a una. Un consorcio que paga de a poco - parciales
+  // que no coinciden con ninguna factura - se veía como si nunca hubiera
+  // pagado nada, aunque el total del cliente dijera otra cosa.
+  const cobrosDelCliente = COBROS_DETALLE.filter((c) => c.cuit_cliente === cliente.cuit);
+
+  const movimientos = [
+    ...cliente.facturas.map((f) => ({ tipo: "factura", fecha: parseFechaAr(f.fecha_emision), factura: f })),
+    ...cobrosDelCliente.map((c) => ({ tipo: "cobro", fecha: parseFechaCorta(c.fecha), cobro: c })),
+  ].sort((a, b) => a.fecha - b.fecha || (a.tipo === "factura" ? -1 : 1));
+
   let saldo = 0;
-  const filas = facturasOrden.map((f) => {
-    const haber = f.estado === "pagada" ? f.total : 0;
-    saldo += f.total - haber;
-    return { ...f, haber, saldo };
+  const filas = movimientos.map((m) => {
+    if (m.tipo === "factura") {
+      saldo += m.factura.total;
+      return { ...m, debe: m.factura.total, haber: 0, saldo };
+    }
+    saldo -= m.cobro.monto;
+    return { ...m, debe: 0, haber: m.cobro.monto, saldo };
   });
 
   content.innerHTML = `
@@ -342,14 +370,32 @@ function renderModal() {
     </div>
     <div class="timeline">
       ${filas
-        .map((f) => {
+        .map((m) => {
+          // Un cobro del banco: puede o no estar imputado a una factura.
+          if (m.tipo === "cobro") {
+            const c = m.cobro;
+            return `
+            <div class="timeline-item">
+              <div class="timeline-dot cobro"></div>
+              <div class="timeline-fecha">${c.fecha}</div>
+              <div class="detalle">${c.tipo_movimiento || "Cobro"} <span class="num-fact">· ${c.extracto || ""}</span></div>
+              <div class="timeline-cuenta">
+                <div><span class="k">Debe</span>—</div>
+                <div><span class="k">Haber</span>${fmtMoney(c.monto)}</div>
+                <div><span class="k">Saldo</span>${fmtMoney(m.saldo)}</div>
+              </div>
+              <div class="pago-info ok-text">Entró al banco</div>
+            </div>`;
+          }
+
+          const f = m.factura;
           const esNotaCredito = f.tipo === "NC" || f.total < 0;
-          let pagoInfo = esNotaCredito ? "Nota de crédito" : "Sin pago registrado";
+          let pagoInfo = esNotaCredito ? "Nota de crédito" : "Sin imputar a un cobro puntual";
           if (f.pago) {
             pagoInfo =
               f.pago.origen === "manual"
                 ? `Confirmado a mano · transacción ${f.pago.numero_transaccion} · ingresó ${f.pago.fecha_confirmacion}${f.pago.confirmado_por ? " · " + f.pago.confirmado_por : ""}`
-                : `Detectado en extracto de ${f.pago.extracto}${f.pago.fecha_aprox ? " · " + f.pago.fecha_aprox : ""}`;
+                : `Imputada al cobro de ${f.pago.extracto}${f.pago.fecha_aprox ? " · " + f.pago.fecha_aprox : ""}${f.pago.retencion ? ` · retuvo ${fmtMoney(f.pago.retencion)}` : ""}`;
           }
           const accionConfirmar =
             f.estado === "pendiente" && !esNotaCredito && puedeEscribir()
@@ -371,8 +417,8 @@ function renderModal() {
               <div class="detalle">${f.detalle} <span class="num-fact">· ${esNotaCredito ? "NC" : "FC"} ${f.numero}</span></div>
               <div class="timeline-cuenta">
                 <div><span class="k">Debe</span>${fmtMoney(f.total)}</div>
-                <div><span class="k">Haber</span>${f.haber ? fmtMoney(f.haber) : "—"}</div>
-                <div><span class="k">Saldo</span>${fmtMoney(f.saldo)}</div>
+                <div><span class="k">Haber</span>—</div>
+                <div><span class="k">Saldo</span>${fmtMoney(m.saldo)}</div>
               </div>
               <div class="pago-info ${esNotaCredito ? "" : f.estado === "pagada" ? "ok-text" : "warn-text"}">${pagoInfo}</div>
               ${accionConfirmar}

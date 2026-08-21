@@ -407,3 +407,10 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   color: var(--text, #e6eaf0);
   border-color: var(--muted, #8b95a5);
 }
+
+/* Un cobro del banco dentro del estado de cuenta: se distingue de una
+   factura para que se lea de un vistazo qué entró y qué se facturó. */
+.timeline-dot.cobro {
+  background: var(--ok);
+  border-color: var(--ok);
+}
