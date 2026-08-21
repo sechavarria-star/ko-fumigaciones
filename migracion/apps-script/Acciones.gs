@@ -34,7 +34,15 @@ function accObtenerDatos_(usuario) {
     'id'
   );
 
-  return { clientes: clientes, facturas: facturas, pagos: pagos, yo: usuario };
+  // Cuenta corriente: lo que entro al banco por cliente, imputado o no. Se
+  // manda agregado (no fila por fila) porque el tablero solo necesita el
+  // total por CUIT y son ~900 movimientos.
+  const cobros = {};
+  sbGetTodo('cobros', 'select=cuit_cliente,monto', 'id').forEach(function (c) {
+    cobros[c.cuit_cliente] = (cobros[c.cuit_cliente] || 0) + Number(c.monto);
+  });
+
+  return { clientes: clientes, facturas: facturas, pagos: pagos, cobros: cobros, yo: usuario };
 }
 
 // --- 1) confirmar pago manual ---
@@ -262,6 +270,55 @@ function accParseExtracto_(body, usuario) {
   });
 
   return { extracto_label: body.filename, matches: matches, aproximados: aproximados };
+}
+
+/**
+ * Registra en ko.cobros todo lo que entro al banco de clientes conocidos,
+ * se haya podido imputar a una factura o no.
+ *
+ * Es el hecho bancario, no una interpretacion: por eso se guarda entero y
+ * aparte de ko.pagos (que dice que factura quedo saldada). El saldo del
+ * cliente sale de restar esto a lo facturado, y asi cierra aunque el cliente
+ * haya pagado tres meses juntos en una sola transferencia.
+ *
+ * Es idempotente: la firma incluye el extracto y un orden, asi que volver a
+ * subir el mismo archivo no duplica nada.
+ */
+function accRegistrarCobros_(body, usuario) {
+  const texto = textoDelPdf_(body, 'extracto.pdf');
+  const etiqueta = body.filename || '';
+
+  const cuits = sbGetTodo('clientes', 'select=cuit', 'cuit').map(function (c) { return c.cuit; });
+
+  const vistos = {};
+  const filas = [];
+  movimientosDelExtracto_(texto, cuits).forEach(function (mov) {
+    if (mov.importe <= 0 || !mov.cuits.length || !esCobro_(mov.descripcion)) return;
+    mov.cuits.forEach(function (cuit) {
+      const base = etiqueta + '|' + firmaMovimiento_(cuit, mov.importe, mov.fecha);
+      const orden = (vistos[base] = (vistos[base] || 0) + 1);
+      filas.push({
+        cuit_cliente: cuit,
+        monto: mov.importe,
+        fecha: mov.fecha,
+        tipo_movimiento: mov.descripcion,
+        extracto: etiqueta,
+        firma: base + '|' + orden,
+        orden: orden,
+      });
+    });
+  });
+
+  if (!filas.length) return { registrados: 0, total: 0 };
+
+  const TANDA = 200;
+  for (let i = 0; i < filas.length; i += TANDA) {
+    sbUpsert('cobros', filas.slice(i, i + TANDA), 'firma');
+  }
+  return {
+    registrados: filas.length,
+    total: filas.reduce(function (s, f) { return s + f.monto; }, 0),
+  };
 }
 
 function firmaMovimiento_(cuit, importe, fecha) {

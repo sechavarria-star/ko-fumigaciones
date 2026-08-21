@@ -7,6 +7,8 @@ const fmtMoney = (n) =>
 let CLIENTES = {};
 let FACTURAS = [];
 let PAGOS = [];
+// Total entrado al banco por CUIT, se haya imputado a una factura o no.
+let COBROS = {};
 let CLIENTES_VIEW = [];
 let PENDIENTES_VALIDAR = []; // facturas del informe sin CUIT asociado, agrupadas por cliente_informe
 let filtroActual = "todos";
@@ -26,6 +28,7 @@ async function cargarDatosAutenticado() {
   CLIENTES = datos.clientes;
   FACTURAS = datos.facturas;
   PAGOS = datos.pagos;
+  COBROS = datos.cobros || {};
   YO = datos.yo;
   recomputar();
 }
@@ -75,19 +78,49 @@ function recomputar() {
     total_facturado: 0,
     total_cobrado: 0,
     total_pendiente: 0,
+    total_a_cuenta: 0,     // pagado de más: cancela deuda anterior a enero
+    total_sin_imputar: 0,  // entró al banco pero no se pudo atar a una factura
   };
 
   CLIENTES_VIEW = [...porCliente.values()].map((c) => {
     const total_facturado = c.facturas.reduce((s, f) => s + f.total, 0);
-    const total_pagado = c.facturas.filter((f) => f.estado === "pagada").reduce((s, f) => s + f.total, 0);
+    // Lo que se pudo atar a una factura concreta.
+    const total_imputado = c.facturas.filter((f) => f.estado === "pagada").reduce((s, f) => s + f.total, 0);
+
+    // Lo que realmente entró al banco de este cliente, imputado o no.
+    //
+    // Es lo que hace cerrar el arqueo: hay clientes que dejan pasar dos o
+    // tres meses y después pagan todo junto en una transferencia. Ese importe
+    // no coincide con ninguna factura, así que la imputación no lo encuentra
+    // - pero la plata entró, y la deuda del cliente no es la que sugiere el
+    // detalle factura por factura.
+    const cobrado_banco = COBROS[c.cuit] || 0;
+    const total_cobrado = Math.max(total_imputado, Math.min(cobrado_banco, total_facturado));
+
+    // Si pagó más de lo facturado en el período, el excedente cancela deuda
+    // anterior a enero (que no está cargada). No baja el saldo del período ni
+    // se cuenta como cobrado: se muestra aparte, para que se vea de dónde
+    // sale la diferencia.
+    const a_cuenta = Math.max(0, cobrado_banco - total_facturado);
+
     resumen.total_facturado += total_facturado;
-    resumen.total_cobrado += total_pagado;
-    resumen.total_pendiente += total_facturado - total_pagado;
+    resumen.total_cobrado += total_cobrado;
+    resumen.total_pendiente += total_facturado - total_cobrado;
+    resumen.total_a_cuenta += a_cuenta;
+    resumen.total_sin_imputar += Math.max(0, total_cobrado - total_imputado);
     resumen.cantidad_pagadas += c.facturas.filter((f) => f.estado === "pagada").length;
     // Las notas de crédito (total negativo) no son algo que alguien vaya a
     // pagar - no cuentan como "factura pendiente" aunque nunca tengan pago.
     resumen.cantidad_pendientes += c.facturas.filter((f) => f.estado === "pendiente" && f.total >= 0).length;
-    return { ...c, total_facturado, total_pagado, total_pendiente: total_facturado - total_pagado };
+    return {
+      ...c,
+      total_facturado,
+      total_imputado,
+      cobrado_banco,
+      a_cuenta,
+      total_pagado: total_cobrado,
+      total_pendiente: total_facturado - total_cobrado,
+    };
   });
   CLIENTES_VIEW.sort((a, b) => b.total_pendiente - a.total_pendiente);
 
@@ -159,6 +192,11 @@ function renderKpis() {
     <div class="kpi">
       <div class="label">Cobrado</div>
       <div class="value ok">${fmtMoney(r.total_cobrado)}</div>
+      ${
+        r.total_sin_imputar
+          ? `<div class="kpi-nota">incluye ${fmtMoney(r.total_sin_imputar)} que entró al banco pero no se pudo atar a una factura</div>`
+          : ""
+      }
     </div>
     <div class="kpi">
       <div class="label">Pendiente</div>
@@ -230,8 +268,17 @@ function renderTabla() {
           <td class="nombre">${c.nombre}</td>
           <td class="cuit">${formatCuit(c.cuit)}</td>
           <td class="num">${fmtMoney(c.total_facturado)}</td>
-          <td class="num">${fmtMoney(c.total_pagado)}</td>
-          <td class="num">${fmtMoney(c.total_pendiente)}</td>
+          <td class="num">${fmtMoney(c.total_pagado)}${
+            // Cobrado que no se pudo atar a una factura puntual: casi siempre
+            // es un pago que junta varios meses. Se aclara para que no parezca
+            // que el detalle de abajo está incompleto.
+            c.total_pagado > c.total_imputado
+              ? `<div class="archivo">${fmtMoney(c.total_pagado - c.total_imputado)} sin imputar</div>`
+              : ""
+          }</td>
+          <td class="num">${fmtMoney(c.total_pendiente)}${
+            c.a_cuenta ? `<div class="archivo">+${fmtMoney(c.a_cuenta)} a cuenta de 2025</div>` : ""
+          }</td>
           <td><span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span></td>
         </tr>
       `;

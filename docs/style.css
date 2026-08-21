@@ -363,3 +363,12 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   .buscador, .panel-head .buscador { width: 100%; }
   th, td { padding: 10px 12px; }
 }
+
+/* Aclaración chica debajo de un KPI (ej. cuánto del cobrado no se pudo
+   imputar a una factura puntual). */
+.kpi-nota {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted, #8b95a5);
+}

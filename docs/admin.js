@@ -539,7 +539,15 @@ async function procesarArchivosExtracto(archivos) {
     draftEl.innerHTML = `<div class="draft-card">Leyendo extracto ${i + 1} de ${files.length} (${file_nombre(files[i])})…</div>`;
     const file = files[i];
     try {
-      const resultado = await llamarBackend("parse_extracto", await payloadDePdf(file));
+      const payload = await payloadDePdf(file);
+
+      // Primero se registra TODO lo que entró al banco de clientes conocidos,
+      // se pueda imputar o no. Es el hecho bancario y es lo que hace cerrar el
+      // arqueo: los clientes que pagan dos o tres meses juntos no matchean
+      // contra ninguna factura, pero la plata entró igual.
+      const cobros = await llamarBackend("registrar_cobros", payload);
+
+      const resultado = await llamarBackend("parse_extracto", payload);
       const exactos = resultado.matches.map((m) => ({ ...m, extracto_label: resultado.extracto_label }));
 
       // Las retenciones NUNCA se confirman solas, ni en lote: van a la cola
@@ -563,7 +571,7 @@ async function procesarArchivosExtracto(archivos) {
           c.confirmados.forEach(aplicarPagoLocal);
           confirmados = c.confirmados.length;
         }
-        hechas.push(`${file.name}: ${confirmados} pago(s) consolidado(s)${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`);
+        hechas.push(`${file.name}: ${cobros.registrados} cobro(s) registrado(s), ${confirmados} imputado(s) a una factura${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`);
       } else {
         let agregadas = 0;
         exactos.forEach((m) => {
@@ -574,7 +582,7 @@ async function procesarArchivosExtracto(archivos) {
         const repetidas = exactos.length - agregadas;
         guardarColaEnStorage();
         hechas.push(
-          `${file.name}: ${agregadas} coincidencia(s) nueva(s) en la cola${repetidas ? ` (${repetidas} ya estaba(n))` : ""}${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`
+          `${file.name}: ${cobros.registrados} cobro(s) registrado(s), ${agregadas} coincidencia(s) nueva(s) en la cola${repetidas ? ` (${repetidas} ya estaba(n))` : ""}${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`
         );
       }
 

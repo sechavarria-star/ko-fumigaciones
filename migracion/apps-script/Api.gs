@@ -78,6 +78,10 @@ function despachar_(action, body, usuario) {
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accConsolidarExtractos_(body, usuario);
 
+    case 'registrar_cobros':
+      requerirPerfil_(usuario, ['admin', 'supervisor']);
+      return accRegistrarCobros_(body, usuario);
+
     case 'upsert_cliente':
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accUpsertCliente_(body, usuario);
