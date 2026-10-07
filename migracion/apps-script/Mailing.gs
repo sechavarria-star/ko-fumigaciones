@@ -8,7 +8,7 @@
  *
  * Los mails NO salen de este Apps Script (que es de GIWA): se dejan en la
  * cola ko.mailing_cola y los manda el "cartero" (migracion/cartero/), un
- * Apps Script de cobranzas@kofumigacion.com que cada 1 minuto pide los
+ * Apps Script de facturacion@kofumigacion.com que cada 1 minuto pide los
  * pendientes (cartero_tomar) y avisa como le fue (cartero_resultado).
  *
  * Es el cartero el que llama, y no al reves, porque la cuenta de KO no
@@ -168,7 +168,7 @@ function accMailingEnviar_(body, usuario) {
   if (c.cuota !== null && c.cuota !== undefined) {
     const direcciones = aEncolar.reduce(function (s, f) { return s + cantidadDirecciones_(f.email); }, 0);
     if (direcciones > c.cuota) {
-      throw new ApiError(400, 'A cobranzas@ le quedan ' + c.cuota + ' destinatarios por hoy y este envío tiene ' + direcciones + '. Mandá menos o esperá a mañana.');
+      throw new ApiError(400, 'A ' + (c.cuenta || 'la cuenta que manda') + ' le quedan ' + c.cuota + ' destinatarios por hoy y este envío tiene ' + direcciones + '. Mandá menos o esperá a mañana.');
     }
   }
 

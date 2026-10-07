@@ -1,7 +1,7 @@
 /**
  * Cartero de KO Fumigaciones.
  *
- * Vive en la cuenta cobranzas@kofumigacion.com y lo unico que hace es mandar
+ * Vive en la cuenta facturacion@kofumigacion.com y lo unico que hace es mandar
  * mails desde ella. No sabe nada de clientes ni de saldos ni tiene acceso a
  * la base: le pide al backend del panel los mails que estan en la cola, ya
  * armados, los manda y le avisa como le fue.

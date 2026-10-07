@@ -52,12 +52,12 @@ vidrio": esos emails son admin siempre, exista o no la fila en `ko.usuarios`
 ## Mailing a clientes
 
 Pestaña **Mailing** del panel. Arma un mail por cliente con su saldo y las
-facturas que lo componen, y lo manda desde **cobranzas@kofumigacion.com**.
+facturas que lo componen, y lo manda desde **facturacion@kofumigacion.com**.
 
 - **Desde dónde sale**: este backend es de GIWA, así que no manda mails él
   mismo. "Enviar" deja los mails armados en la cola `ko.mailing_cola`, y el
   **cartero** (`migracion/cartero/`), un Apps Script de la cuenta
-  cobranzas@kofumigacion.com, cada 1 minuto se los pide al backend
+  facturacion@kofumigacion.com, cada 1 minuto se los pide al backend
   (`cartero_tomar`), los manda desde esa cuenta y avisa cómo le fue
   (`cartero_resultado`). Se autentica con la clave compartida. El panel muestra
   desde qué cuenta sale, si el cartero está activo, cuántos hay en cola y los
@@ -84,7 +84,7 @@ facturas que lo componen, y lo manda desde **cobranzas@kofumigacion.com**.
 - **Emails**: se cargan en la pestaña Clientes (clic en la fila para editar).
   Varios separados por coma.
 - **Permisos**: la vista previa la ve admin y supervisor; enviar, solo admin.
-- **Cuota de Gmail**: la de cobranzas@ (Workspace: 1.500 destinatarios por
+- **Cuota de Gmail**: la de facturacion@ (Workspace: 1.500 destinatarios por
   día). El panel muestra cuánto queda.
 
 ## Configuración (por si hay que recrearla)

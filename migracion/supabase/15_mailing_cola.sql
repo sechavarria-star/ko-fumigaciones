@@ -1,6 +1,6 @@
 -- Cola de mails.
 --
--- El cartero (Apps Script de cobranzas@kofumigacion.com) no puede recibir
+-- El cartero (Apps Script de facturacion@kofumigacion.com) no puede recibir
 -- llamadas: la cuenta de KO no logra publicar apps web abiertas. Asi que se
 -- invierte el flujo: el panel deja los mails aca y el cartero, con un
 -- activador de cada 1 minuto, se los pide al backend, los manda y avisa
@@ -50,3 +50,20 @@ alter table ko.mailing_cola enable row level security;
 grant all privileges on ko.mailing_cola to service_role;
 grant all privileges on all sequences in schema ko to service_role;
 revoke all on ko.mailing_cola from anon, authenticated;
+
+-- --- remitente --------------------------------------------------------------------
+-- Los mails salen de facturacion@kofumigacion.com (cobranzas@ era un alias, y
+-- un alias no puede tener su propio cartero). Las respuestas vuelven a la
+-- cuenta que manda (responder_a vacio) y la firma muestra esa direccion.
+
+update ko.mailing_templates
+set firma = replace(firma, 'cobranzas@kofumigacion.com', 'facturacion@kofumigacion.com')
+where firma like '%cobranzas@kofumigacion.com%';
+
+update ko.mailing_templates
+set firma = replace(firma, 'fumigaciondeplagas@gmail.com', 'facturacion@kofumigacion.com')
+where firma like '%fumigaciondeplagas@gmail.com%';
+
+update ko.mailing_templates
+set responder_a = ''
+where responder_a in ('fumigaciondeplagas@gmail.com', 'cobranzas@kofumigacion.com');

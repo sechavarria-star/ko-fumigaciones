@@ -891,7 +891,7 @@ function esc(texto) {
 // elige a quién mandarle. Al enviar, el backend vuelve a leer la vista, así
 // que el saldo que sale es el de ese momento.
 // Los mails no salen en el momento: quedan en una cola que el cartero
-// (Apps Script de cobranzas@) revisa cada 1 minuto. Ver Mailing.gs.
+// (Apps Script de facturacion@) revisa cada 1 minuto. Ver Mailing.gs.
 let MAILING = { templates: [], destinatarios: [], cartero: null, cola: null, templateId: null };
 let MAILING_ABIERTO = null;
 
@@ -1020,7 +1020,7 @@ function renderMailing() {
       ${puedeMandar ? `
       <div class="lote-acciones lote-acciones-top">
         <button id="btn-enviar-mailing" disabled>Enviar 0 mails</button>
-        <span class="resumen-txt">Quedan en cola y salen desde ${esc(c.cuenta || "la cuenta de cobranzas")} en el próximo minuto.</span>
+        <span class="resumen-txt">Quedan en cola y salen desde ${esc(c.cuenta || "la cuenta de facturación")} en el próximo minuto.</span>
       </div>` : ""}
       <div class="table-wrap">
         <table>
