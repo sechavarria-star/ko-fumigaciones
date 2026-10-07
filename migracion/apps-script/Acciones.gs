@@ -15,7 +15,7 @@ var RETENCION_MAX = 0.12;
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
   // filas del límite de PostgREST - ver el comentario en Supabase.gs.
-  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por', 'cuit');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
     clientes[c.cuit] = {
@@ -25,6 +25,7 @@ function accObtenerDatos_(usuario) {
       provincia: c.provincia,
       email: c.email || '',
       paga_por: c.paga_por || '',
+      sin_cobro: c.sin_cobro || '',
     };
   });
 

@@ -65,11 +65,13 @@ function recomputar() {
     }
 
     const pago = pagoPorFactura.get(f.numero) || null;
-    const estado = pago ? "pagada" : "pendiente";
     const info = CLIENTES[f.cuit_cliente] || { nombre: "(cliente no encontrado en Clientes)" };
+    // Clientes a los que no se les cobra (ej. el edificio del dueño): todas
+    // sus facturas cuentan como pagas. Mismo criterio que ko.v_saldos_clientes.
+    const estado = pago || info.sin_cobro ? "pagada" : "pendiente";
 
     if (!porCliente.has(f.cuit_cliente)) {
-      porCliente.set(f.cuit_cliente, { cuit: f.cuit_cliente, nombre: info.nombre, facturas: [] });
+      porCliente.set(f.cuit_cliente, { cuit: f.cuit_cliente, nombre: info.nombre, sin_cobro: info.sin_cobro || "", facturas: [] });
     }
     porCliente.get(f.cuit_cliente).facturas.push({ ...f, estado, pago });
   }
@@ -104,7 +106,7 @@ function recomputar() {
     // (migracion/supabase/10_mailing.sql), que es de donde sale el saldo de
     // los mails a clientes. Si se cambia acá, hay que cambiarla allá.
     const cobrado_banco = COBROS[c.cuit] || 0;
-    const total_cobrado = Math.max(total_imputado, Math.min(cobrado_banco, total_facturado));
+    const total_cobrado = c.sin_cobro ? total_facturado : Math.max(total_imputado, Math.min(cobrado_banco, total_facturado));
 
     // Si pagó más de lo facturado en el período, el excedente cancela deuda
     // anterior a enero (que no está cargada). No baja el saldo del período ni
@@ -299,7 +301,7 @@ function renderTabla() {
           <td class="num">${fmtMoney(c.total_pendiente)}${
             c.a_cuenta ? `<div class="archivo">+${fmtMoney(c.a_cuenta)} a cuenta de 2025</div>` : ""
           }</td>
-          <td><span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span></td>
+          <td><span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span>${c.sin_cobro ? `<div class="archivo">${escLeyenda(c.sin_cobro)}</div>` : ""}</td>
         </tr>
       `;
     })
@@ -314,6 +316,10 @@ function renderTabla() {
   });
 
   actualizarFlechasOrden();
+}
+
+function escLeyenda(t) {
+  return String(t).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
 }
 
 function formatCuit(cuit) {
@@ -367,6 +373,8 @@ function renderModal() {
   let saldo = 0;
   const filas = movimientos.map((m) => {
     if (m.tipo === "factura") {
+      // Sin cobro: cada factura se cancela sola, el saldo no crece.
+      if (cliente.sin_cobro) return { ...m, debe: m.factura.total, haber: m.factura.total, saldo };
       saldo += m.factura.total;
       return { ...m, debe: m.factura.total, haber: 0, saldo };
     }
@@ -387,7 +395,7 @@ function renderModal() {
           cliente.retenido ? ` · retuvo ${fmtMoney(cliente.retenido)}` : ""
         }</div>
       </div>
-      <span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span>
+      <span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}${cliente.sin_cobro ? ` · ${escLeyenda(cliente.sin_cobro)}` : ""}</span>
     </div>
     <div class="timeline">
       ${filas
@@ -412,6 +420,7 @@ function renderModal() {
           const f = m.factura;
           const esNotaCredito = f.tipo === "NC" || f.total < 0;
           let pagoInfo = esNotaCredito ? "Nota de crédito" : "Sin imputar a un cobro puntual";
+          if (!f.pago && cliente.sin_cobro) pagoInfo = `No se cobra · ${escLeyenda(cliente.sin_cobro)}`;
           if (f.pago) {
             pagoInfo =
               f.pago.origen === "manual"

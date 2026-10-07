@@ -838,6 +838,8 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     // El backend normaliza los emails (minúsculas, separados por ", ").
     info.email = (guardado && guardado.email) || info.email;
     info.paga_por = (guardado && guardado.paga_por) || "";
+    // El formulario no edita "sin cobro": se conserva lo que tenía.
+    info.sin_cobro = (CLIENTES[cuit] && CLIENTES[cuit].sin_cobro) || "";
     aplicarClienteLocal(cuit, info);
     renderTablaClientesAdmin();
     e.target.reset();
