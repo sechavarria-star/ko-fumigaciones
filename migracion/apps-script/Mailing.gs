@@ -122,3 +122,13 @@ function accMailingEnviar_(body, usuario) {
 
   return { enviados: enviados, omitidos: omitidos, fallidos: fallidos };
 }
+
+/**
+ * Para correr A MANO desde el editor (Ejecutar > autorizarGmail), una sola
+ * vez: dispara el pedido del permiso "Enviar correo en tu nombre". Correr
+ * otra funcion no siempre lo pide, y en la pantalla de permisos con casillas
+ * hay que tildar ese en particular. Si loguea la cuota, quedo autorizado.
+ */
+function autorizarGmail() {
+  console.log('Cuota de Gmail disponible hoy: ' + MailApp.getRemainingDailyQuota());
+}
