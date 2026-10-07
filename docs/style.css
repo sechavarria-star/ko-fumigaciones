@@ -456,3 +456,22 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   line-height: 1.5;
 }
 .referencia .marca-retencion { cursor: default; }
+
+/* filas que se pueden clickear (editar cliente, ver mail) */
+.fila-editable { cursor: pointer; }
+.fila-editable:hover td { background: var(--panel-2); }
+
+.mail-preview {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 4px 0 8px;
+}
+.mail-preview .mail-asunto { font-weight: 600; margin-bottom: 8px; }
+.mail-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+}

@@ -15,10 +15,16 @@ var RETENCION_MAX = 0.12;
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
   // filas del límite de PostgREST - ver el comentario en Supabase.gs.
-  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia', 'cuit');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
-    clientes[c.cuit] = { nombre: c.nombre, condicion_iva: c.condicion_iva, direccion: c.direccion, provincia: c.provincia };
+    clientes[c.cuit] = {
+      nombre: c.nombre,
+      condicion_iva: c.condicion_iva,
+      direccion: c.direccion,
+      provincia: c.provincia,
+      email: c.email || '',
+    };
   });
 
   const facturas = sbGetTodo(
@@ -569,7 +575,23 @@ function accUpsertCliente_(body, usuario) {
     direccion: body.direccion || '',
     provincia: body.provincia || '',
   };
+  // Solo se toca si viene: un front viejo que no conoce el campo no tiene que
+  // borrar el email que otro cargo.
+  if (body.email !== undefined) fila.email = normalizarEmails_(body.email);
   return sbUpsert('clientes', [fila], 'cuit')[0];
+}
+
+// Uno o varios emails separados por coma (los consorcios suelen tener mas de
+// uno). Devuelve la lista limpia, o '' si viene vacio.
+function normalizarEmails_(texto) {
+  const emails = String(texto || '')
+    .split(/[,;\s]+/)
+    .map(function (e) { return e.trim().toLowerCase(); })
+    .filter(Boolean);
+  emails.forEach(function (e) {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) throw new ApiError(400, 'Email inválido: ' + e);
+  });
+  return emails.join(', ');
 }
 
 // --- 5) usuarios (solo admin) ---

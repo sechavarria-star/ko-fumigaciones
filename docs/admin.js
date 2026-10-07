@@ -210,6 +210,7 @@ document.getElementById("mainnav").addEventListener("click", (e) => {
   if (!btn) return;
   irAPagina(btn.dataset.page);
   if (btn.dataset.page === "usuarios") cargarUsuarios();
+  if (btn.dataset.page === "mailing") cargarMailing();
 });
 
 // --- 1) confirmar pago manual ---
@@ -826,10 +827,15 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     nombre: fd.get("nombre").trim(),
     condicion_iva: fd.get("condicion_iva").trim(),
     direccion: fd.get("direccion").trim(),
-    provincia: "",
+    // El form no tiene provincia: se conserva la que ya tenía, en vez de
+    // pisarla con vacío cada vez que se edita el cliente.
+    provincia: (CLIENTES[cuit] && CLIENTES[cuit].provincia) || "",
+    email: fd.get("email").trim(),
   };
   try {
-    await llamarBackend("upsert_cliente", { cuit, ...info });
+    const guardado = await llamarBackend("upsert_cliente", { cuit, ...info });
+    // El backend normaliza los emails (minúsculas, separados por ", ").
+    info.email = (guardado && guardado.email) || info.email;
     aplicarClienteLocal(cuit, info);
     renderTablaClientesAdmin();
     e.target.reset();
@@ -852,8 +858,211 @@ function renderTablaClientesAdmin() {
   const filas = Object.entries(CLIENTES)
     .filter(([cuit, info]) => !q || cuit.includes(q) || info.nombre.toLowerCase().includes(q))
     .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
-    .map(([cuit, info]) => `<tr><td class="cuit">${formatCuit(cuit)}</td><td>${info.nombre}</td><td>${info.condicion_iva || ""}</td></tr>`);
-  tbody.innerHTML = filas.join("") || `<tr><td colspan="3">Ningún cliente coincide con la búsqueda.</td></tr>`;
+    .map(
+      ([cuit, info]) =>
+        `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`
+    );
+  tbody.innerHTML = filas.join("") || `<tr><td colspan="4">Ningún cliente coincide con la búsqueda.</td></tr>`;
+}
+
+// Clic en una fila: carga el cliente en el formulario para editarlo. Sin
+// esto, cargar un email obligaba a reescribir a mano CUIT, nombre e IVA.
+document.getElementById("tbody-clientes-admin").addEventListener("click", (e) => {
+  const fila = e.target.closest("tr[data-cuit]");
+  if (!fila) return;
+  const cuit = fila.dataset.cuit;
+  const info = CLIENTES[cuit] || {};
+  const form = document.getElementById("form-cliente");
+  form.cuit.value = cuit;
+  form.nombre.value = info.nombre || "";
+  form.condicion_iva.value = info.condicion_iva || "";
+  form.direccion.value = info.direccion || "";
+  form.email.value = info.email || "";
+  form.email.focus();
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+function esc(texto) {
+  return String(texto ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+}
+
+// --- mailing ---
+// Todo lo que se muestra acá lo arma Supabase (ko.v_mailing): el panel solo
+// elige a quién mandarle. Al enviar, el backend vuelve a leer la vista, así
+// que el saldo que sale es el de ese momento.
+let MAILING = { templates: [], destinatarios: [], cuota: 0, templateId: null };
+let MAILING_ABIERTO = null;
+
+const ESTADOS_MAILING = {
+  listo: { texto: "Listo", clase: "ok" },
+  sin_email: { texto: "Sin email", clase: "warn" },
+  enviado_reciente: { texto: "Enviado hace poco", clase: "" },
+};
+
+async function cargarMailing(templateId) {
+  const cont = document.getElementById("mailing-contenido");
+  cont.innerHTML = `<p class="hint">Cargando…</p>`;
+  try {
+    const vista = await llamarBackend("mailing_vista", {});
+    MAILING.templates = vista.templates;
+    MAILING.cuota = vista.cuota;
+    const sel = document.getElementById("mailing-template");
+    sel.innerHTML = vista.templates.map((t) => `<option value="${esc(t.id)}">${esc(t.id)}</option>`).join("");
+    if (!vista.templates.length) {
+      cont.innerHTML = `<p class="hint">No hay templates activos en <code>ko.mailing_templates</code>.</p>`;
+      return;
+    }
+    MAILING.templateId = templateId || MAILING.templateId || vista.templates[0].id;
+    if (!vista.templates.some((t) => t.id === MAILING.templateId)) MAILING.templateId = vista.templates[0].id;
+    sel.value = MAILING.templateId;
+    const conDatos = await llamarBackend("mailing_vista", { template_id: MAILING.templateId });
+    MAILING.destinatarios = conDatos.destinatarios || [];
+    MAILING.cuota = conDatos.cuota;
+    MAILING_ABIERTO = null;
+    renderMailing();
+  } catch (err) {
+    if (esSesionInvalida(err)) return avisarError(err, "");
+    cont.innerHTML = `<p class="hint warn-text">No se pudo cargar: ${esc(err.message)}</p>`;
+  }
+}
+
+document.getElementById("mailing-template").addEventListener("change", (e) => cargarMailing(e.target.value));
+
+function rangoTemplate(t) {
+  const desde = t.saldo_min > 0 ? `más de ${fmtMoney(t.saldo_min)}` : "más de $0";
+  return t.saldo_max === null ? `Saldo ${desde}` : `Saldo ${desde} y menos de ${fmtMoney(t.saldo_max)}`;
+}
+
+function renderMailing() {
+  const cont = document.getElementById("mailing-contenido");
+  const t = MAILING.templates.find((x) => x.id === MAILING.templateId);
+  const ds = [...MAILING.destinatarios].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const cuenta = (estado) => ds.filter((d) => d.estado === estado).length;
+  const listos = ds.filter((d) => d.estado === "listo");
+  const esAdmin = YO.perfil === "admin";
+
+  // El saldo de la vista lo calcula Supabase y el del tablero el navegador,
+  // con la misma fórmula escrita dos veces (SQL y JS). Si alguna vez se
+  // desalinean, el mail le diría al cliente una deuda distinta de la que ve
+  // KO: en ese caso no se deja mandar nada.
+  const saldoTablero = new Map(CLIENTES_VIEW.map((c) => [c.cuit, c.total_pendiente]));
+  const desalineados = ds.filter((d) => Math.abs((saldoTablero.get(d.cuit) ?? 0) - d.saldo) > 1);
+  const puedeMandar = esAdmin && !t.sin_completar && !desalineados.length;
+
+  const avisos = [];
+  if (t.sin_completar) {
+    avisos.push(`El template todavía tiene datos sin completar (<code>[COMPLETAR …]</code>). Editalo en Supabase, tabla <code>ko.mailing_templates</code>, fila <code>${esc(t.id)}</code>; hasta entonces no se puede enviar.`);
+  }
+  if (cuenta("sin_email")) {
+    avisos.push(`${cuenta("sin_email")} cliente${cuenta("sin_email") === 1 ? "" : "s"} sin email: cargalo${cuenta("sin_email") === 1 ? "" : "s"} desde la pestaña Clientes.`);
+  }
+  if (desalineados.length) {
+    avisos.push(
+      `El saldo de Supabase no coincide con el del tablero para ${desalineados.length} cliente${desalineados.length === 1 ? "" : "s"} ` +
+        `(${desalineados.slice(0, 3).map((d) => esc(d.nombre)).join(", ")}${desalineados.length > 3 ? "…" : ""}). ` +
+        `Probá con Actualizar; si sigue, la fórmula de <code>ko.v_saldos_clientes</code> y la de <code>recomputar()</code> se desalinearon. No se puede enviar hasta resolverlo.`
+    );
+  }
+  if (!esAdmin) avisos.push("Solo un admin puede enviar.");
+
+  const filas = ds.map((d) => {
+    const est = ESTADOS_MAILING[d.estado] || { texto: d.estado, clase: "" };
+    const abierto = MAILING_ABIERTO === d.cuit;
+    return `
+      <tr class="fila-editable" data-cuit="${d.cuit}">
+        <td>${d.estado === "listo" && puedeMandar ? `<input type="checkbox" class="chk-mailing" data-cuit="${d.cuit}" checked aria-label="Enviar a ${esc(d.nombre)}">` : ""}</td>
+        <td>${esc(d.nombre)}<div class="archivo">${formatCuit(d.cuit)}</div></td>
+        <td class="archivo">${d.email ? esc(d.email) : "—"}</td>
+        <td class="num">${fmtMoney(d.saldo)}</td>
+        <td><span class="badge ${est.clase}">${est.texto}</span>${d.ultimo_envio ? `<div class="archivo">último: ${new Date(d.ultimo_envio).toLocaleDateString("es-AR")}</div>` : ""}</td>
+      </tr>
+      ${abierto ? `<tr><td colspan="5"><div class="mail-preview"><div class="mail-asunto">${esc(d.asunto)}</div><pre>${esc(d.cuerpo)}</pre></div></td></tr>` : ""}`;
+  });
+
+  cont.innerHTML = `
+    <div class="draft-card">
+      <div class="draft-row"><span class="k">Template</span><span>${esc(t.descripcion || t.id)}</span></div>
+      <div class="draft-row"><span class="k">Criterio</span><span>${rangoTemplate(t)} · no repite antes de ${t.dias_entre_envios} días</span></div>
+      <div class="draft-row"><span class="k">Destinatarios</span><span>${ds.length} en total · ${listos.length} listos · ${cuenta("sin_email")} sin email · ${cuenta("enviado_reciente")} enviados hace poco</span></div>
+      <div class="draft-row"><span class="k">Cuota de Gmail hoy</span><span>${MAILING.cuota} destinatarios</span></div>
+      ${avisos.map((a) => `<div class="warn-text">${a}</div>`).join("")}
+    </div>
+    <div class="lote-resumen">
+      ${puedeMandar ? `
+      <div class="lote-acciones lote-acciones-top">
+        <button id="btn-enviar-mailing" disabled>Enviar 0 mails</button>
+        <span class="resumen-txt">Se manda desde la cuenta dueña del Apps Script.</span>
+      </div>` : ""}
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>${puedeMandar && listos.length ? `<input type="checkbox" id="chk-mailing-todos" checked title="Seleccionar todos los listos">` : ""}</th>
+            <th>Cliente</th><th>Email</th><th class="num">Saldo</th><th>Estado</th>
+          </tr></thead>
+          <tbody>${filas.join("") || `<tr><td colspan="5">Ningún cliente tiene saldo en este rango.</td></tr>`}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  cont.querySelectorAll("tr[data-cuit]").forEach((tr) =>
+    tr.addEventListener("click", (e) => {
+      if (e.target.matches("input")) return;
+      MAILING_ABIERTO = MAILING_ABIERTO === tr.dataset.cuit ? null : tr.dataset.cuit;
+      const marcados = new Set([...cont.querySelectorAll(".chk-mailing:checked")].map((c) => c.dataset.cuit));
+      renderMailing();
+      cont.querySelectorAll(".chk-mailing").forEach((c) => (c.checked = marcados.has(c.dataset.cuit)));
+      actualizarBotonMailing();
+    })
+  );
+  if (!puedeMandar) return;
+
+  const todos = document.getElementById("chk-mailing-todos");
+  todos?.addEventListener("change", () => {
+    cont.querySelectorAll(".chk-mailing").forEach((c) => (c.checked = todos.checked));
+    actualizarBotonMailing();
+  });
+  cont.querySelectorAll(".chk-mailing").forEach((c) => c.addEventListener("change", actualizarBotonMailing));
+  document.getElementById("btn-enviar-mailing").addEventListener("click", enviarMailing);
+  actualizarBotonMailing();
+}
+
+function actualizarBotonMailing() {
+  const cont = document.getElementById("mailing-contenido");
+  const cajas = [...cont.querySelectorAll(".chk-mailing")];
+  const n = cajas.filter((c) => c.checked).length;
+  const btn = document.getElementById("btn-enviar-mailing");
+  if (!btn) return;
+  btn.disabled = n === 0;
+  btn.textContent = `Enviar ${n} mail${n === 1 ? "" : "s"}`;
+  const todos = document.getElementById("chk-mailing-todos");
+  if (todos) {
+    todos.checked = n > 0 && n === cajas.length;
+    todos.indeterminate = n > 0 && n < cajas.length;
+  }
+}
+
+async function enviarMailing(e) {
+  const btn = e.target;
+  const cuits = [...document.querySelectorAll(".chk-mailing:checked")].map((c) => c.dataset.cuit);
+  if (!cuits.length) return;
+  const total = cuits.reduce((s, c) => s + (MAILING.destinatarios.find((d) => d.cuit === c)?.saldo || 0), 0);
+  const ok = confirm(
+    `Vas a mandar ${cuits.length} mail${cuits.length === 1 ? "" : "s"} con el template "${MAILING.templateId}" ` +
+      `(saldo total ${fmtMoney(total)}).\n\nEsto no se puede deshacer. ¿Enviar?`
+  );
+  if (!ok) return;
+  btn.disabled = true;
+  btn.textContent = "Enviando…";
+  try {
+    const r = await llamarBackend("mailing_enviar", { template_id: MAILING.templateId, cuits });
+    const partes = [`Se enviaron ${r.enviados.length} mail${r.enviados.length === 1 ? "" : "s"}.`];
+    if (r.omitidos.length) partes.push(`${r.omitidos.length} se omitieron porque cambiaron desde la vista previa (ya pagaron, sin email o ya se les mandó).`);
+    if (r.fallidos.length) partes.push(`Fallaron ${r.fallidos.length}: ${r.fallidos.map((f) => `${esc(f.nombre)} (${esc(f.error)})`).join("; ")}`);
+    mostrarAviso(partes.join(" "), r.fallidos.length ? "error" : "ok");
+  } catch (err) {
+    avisarError(err, "No se pudo enviar: ");
+  }
+  cargarMailing(MAILING.templateId);
 }
 
 // --- 5) usuarios (solo admin) ---

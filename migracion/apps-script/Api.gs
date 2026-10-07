@@ -103,6 +103,15 @@ function despachar_(action, body, usuario) {
       requerirPerfil_(usuario, ['admin']);
       return { texto: extraerTextoPdf_(body.file_base64, body.filename || 'archivo.pdf') };
 
+    // Mailing: la vista previa la ve quien edita; mandar, solo admin.
+    case 'mailing_vista':
+      requerirPerfil_(usuario, ['admin', 'supervisor']);
+      return accMailingVista_(body, usuario);
+
+    case 'mailing_enviar':
+      requerirPerfil_(usuario, ['admin']);
+      return accMailingEnviar_(body, usuario);
+
     case 'listar_usuarios':
       requerirPerfil_(usuario, ['admin']);
       return accListarUsuarios_();

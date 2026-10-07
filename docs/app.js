@@ -99,6 +99,10 @@ function recomputar() {
     // no coincide con ninguna factura, así que la imputación no lo encuentra
     // - pero la plata entró, y la deuda del cliente no es la que sugiere el
     // detalle factura por factura.
+    //
+    // OJO: esta fórmula está repetida en SQL, en ko.v_saldos_clientes
+    // (migracion/supabase/10_mailing.sql), que es de donde sale el saldo de
+    // los mails a clientes. Si se cambia acá, hay que cambiarla allá.
     const cobrado_banco = COBROS[c.cuit] || 0;
     const total_cobrado = Math.max(total_imputado, Math.min(cobrado_banco, total_facturado));
 

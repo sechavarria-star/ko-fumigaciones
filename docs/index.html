@@ -40,6 +40,7 @@
     <button class="navitem solo-editor" data-page="extractos" hidden>Extractos</button>
     <button class="navitem solo-editor" data-page="pendientes" hidden>Pendientes</button>
     <button class="navitem solo-editor" data-page="clientes" hidden>Clientes</button>
+    <button class="navitem solo-editor" data-page="mailing" hidden>Mailing</button>
     <button class="navitem solo-admin" data-page="usuarios" hidden>Usuarios</button>
   </nav>
 
@@ -150,15 +151,30 @@
           <input name="nombre" placeholder="Nombre / razón social" required>
           <input name="condicion_iva" placeholder="Condición IVA">
           <input name="direccion" placeholder="Dirección">
+          <input name="email" placeholder="Email (varios separados por coma)">
           <button type="submit">Guardar cliente</button>
         </form>
+        <p class="hint">Para editar un cliente, hacé clic en su fila: se cargan sus datos en el formulario.</p>
         <input type="search" id="buscar-clientes-admin" class="buscador" placeholder="Buscar por CUIT o nombre…">
         <div class="table-wrap">
           <table id="tabla-clientes-admin">
-            <thead><tr><th>CUIT</th><th>Nombre</th><th>Condición IVA</th></tr></thead>
+            <thead><tr><th>CUIT</th><th>Nombre</th><th>Condición IVA</th><th>Email</th></tr></thead>
             <tbody id="tbody-clientes-admin"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-mailing" hidden>
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Mailing a clientes</h2>
+        <select id="mailing-template" class="buscador" aria-label="Template"></select>
+      </div>
+      <div class="admin-body">
+        <p class="hint">Los destinatarios, el saldo y el texto de cada mail salen de Supabase (vista <code>ko.v_mailing</code>), con el mismo saldo que muestra el tablero. El texto del template se edita en la tabla <code>ko.mailing_templates</code>. Hacé clic en un cliente para ver el mail exacto que le va a llegar.</p>
+        <div id="mailing-contenido"><p class="hint">Cargando…</p></div>
       </div>
     </div>
   </section>

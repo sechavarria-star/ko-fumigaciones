@@ -49,6 +49,28 @@ Desde la pestaña **Usuarios** del panel (solo admin). Los perfiles son
 vidrio": esos emails son admin siempre, exista o no la fila en `ko.usuarios`
 — para no quedarse afuera del propio sistema.
 
+## Mailing a clientes
+
+Pestaña **Mailing** del panel. Arma un mail por cliente con su saldo y las
+facturas que lo componen, y lo manda desde la cuenta dueña del Apps Script.
+
+- **Quién recibe y qué dice** sale de Supabase, de la vista `ko.v_mailing`. El
+  saldo usa la misma fórmula que el tablero (`ko.v_saldos_clientes`); si no
+  coinciden, el panel no deja mandar.
+- **El texto** se edita en la tabla `ko.mailing_templates` (Table Editor de
+  Supabase). Variables: `{{nombre}}`, `{{cuit}}`, `{{saldo}}`, `{{facturas}}`,
+  `{{cantidad_facturas}}`. El rango de saldo es `saldo_min` < saldo <
+  `saldo_max`. Para otro corte (otro rango, otro tono) se agrega una fila.
+- **Un texto con `[COMPLETAR` no se puede mandar**: el backend lo rechaza.
+- **No se repite**: a un cliente no se le vuelve a mandar el mismo template
+  antes de `dias_entre_envios` (30 por defecto). Todo lo enviado queda en
+  `ko.mailing_envios`, con el saldo y el texto de ese día.
+- **Emails**: se cargan en la pestaña Clientes (clic en la fila para editar).
+  Varios separados por coma.
+- **Permisos**: la vista previa la ve admin y supervisor; enviar, solo admin.
+- **Cuota de Gmail**: 100 destinatarios por día en una cuenta gmail.com,
+  1.500 en Workspace. El panel muestra cuánto queda.
+
 ## Configuración (por si hay que recrearla)
 
 **Script Properties** (editor de Apps Script > Project Settings):
@@ -57,14 +79,19 @@ vidrio": esos emails son admin siempre, exista o no la fila en `ko.usuarios`
 
 **Servicio avanzado**: Drive API (v2), para el OCR de respaldo.
 
+**Permiso de Gmail**: el mailing usa `MailApp`. La primera vez después de
+subirlo hay que correr cualquier función desde el editor (por ej.
+`doGet`) y aceptar el permiso "Enviar correo como usted"; si no, el
+Web App falla con un error de autorización.
+
 **Deployment**: tipo *Web app*, "Execute as: Me", "Who has access: Anyone".
 Tiene que crearse desde el editor la primera vez (Deploy > New deployment):
 `clasp deploy` sin un deployment previo genera un link de librería que da
 403.
 
 **Supabase**: schema `ko` agregado a "Exposed schemas" en Data API settings,
-y los tres SQL de `migracion/supabase/` corridos en orden (`01_schema`,
-`02_datos`, `03_grants`).
+y los SQL de `migracion/supabase/` corridos en orden (`01_schema`,
+`02_datos`, `03_grants`, y después los numerados siguientes).
 
 **Google OAuth Client ID** (proyecto `n8nGiwa` en Google Cloud): tipo
 Aplicación web, con `https://sechavarria-star.github.io` en "Orígenes de
