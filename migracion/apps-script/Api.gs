@@ -108,6 +108,10 @@ function despachar_(action, body, usuario) {
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accMailingVista_(body, usuario);
 
+    case 'mailing_prueba':
+      requerirPerfil_(usuario, ['admin', 'supervisor']);
+      return accMailingPrueba_(body, usuario);
+
     case 'mailing_enviar':
       requerirPerfil_(usuario, ['admin']);
       return accMailingEnviar_(body, usuario);

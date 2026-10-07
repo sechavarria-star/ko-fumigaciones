@@ -124,6 +124,30 @@ function accMailingEnviar_(body, usuario) {
 }
 
 /**
+ * Manda el mail de UN cliente a la casilla de quien lo pide - nunca al
+ * cliente. Sirve para ver como llega antes de mandar de verdad.
+ *
+ * A proposito NO se registra en ko.mailing_envios (si no, el cliente quedaria
+ * como "enviado hace poco" sin haber recibido nada) y se permite aunque el
+ * template tenga [COMPLETAR]: es justamente para revisarlo.
+ */
+function accMailingPrueba_(body, usuario) {
+  if (!body.template_id || !body.cuit) throw new ApiError(400, 'Falta template_id o cuit');
+  const f = filasMailing_(body.template_id).filter(function (x) { return x.cuit === body.cuit; })[0];
+  if (!f) throw new ApiError(404, 'Ese cliente no está en el mailing de este template');
+  const opciones = { name: f.remitente_nombre };
+  if (f.responder_a) opciones.replyTo = f.responder_a;
+  MailApp.sendEmail(
+    usuario.email,
+    '[PRUEBA] ' + f.asunto,
+    'Mail de prueba: así le llegaría a ' + f.nombre + ' (' + (f.email || 'sin email cargado') + ').\n' +
+      'No se le mandó nada al cliente.\n\n----------------------------------------\n\n' + f.cuerpo,
+    opciones
+  );
+  return { enviado_a: usuario.email, cliente: f.nombre };
+}
+
+/**
  * Para correr A MANO desde el editor (Ejecutar > autorizarGmail), una sola
  * vez: dispara el pedido del permiso "Enviar correo en tu nombre". Correr
  * otra funcion no siempre lo pide, y en la pantalla de permisos con casillas

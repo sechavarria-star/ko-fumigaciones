@@ -976,7 +976,7 @@ function renderMailing() {
         <td class="num">${fmtMoney(d.saldo)}</td>
         <td><span class="badge ${est.clase}">${est.texto}</span>${d.ultimo_envio ? `<div class="archivo">último: ${new Date(d.ultimo_envio).toLocaleDateString("es-AR")}</div>` : ""}</td>
       </tr>
-      ${abierto ? `<tr><td colspan="5"><div class="mail-preview"><div class="mail-asunto">${esc(d.asunto)}</div><pre>${esc(d.cuerpo)}</pre></div></td></tr>` : ""}`;
+      ${abierto ? `<tr><td colspan="5"><div class="mail-preview"><div class="mail-asunto">${esc(d.asunto)}</div><pre>${esc(d.cuerpo)}</pre><button type="button" class="btn-confirmar-pago btn-mail-prueba" data-cuit="${d.cuit}">Enviarme este mail de prueba</button></div></td></tr>` : ""}`;
   });
 
   cont.innerHTML = `
@@ -1014,6 +1014,19 @@ function renderMailing() {
       actualizarBotonMailing();
     })
   );
+  cont.querySelector(".btn-mail-prueba")?.addEventListener("click", async (e) => {
+    const btn = e.target;
+    btn.disabled = true;
+    btn.textContent = "Enviando…";
+    try {
+      const r = await llamarBackend("mailing_prueba", { template_id: MAILING.templateId, cuit: btn.dataset.cuit });
+      mostrarAviso(`Te mandé el mail de ${esc(r.cliente)} a ${esc(r.enviado_a)}. Al cliente no le llegó nada.`, "ok");
+    } catch (err) {
+      avisarError(err, "No se pudo mandar la prueba: ");
+    }
+    btn.disabled = false;
+    btn.textContent = "Enviarme este mail de prueba";
+  });
   if (!puedeMandar) return;
 
   const todos = document.getElementById("chk-mailing-todos");

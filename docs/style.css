@@ -475,3 +475,4 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   font-size: 0.85rem;
   color: var(--text);
 }
+.mail-preview .btn-mail-prueba { margin-top: 12px; }
