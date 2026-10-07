@@ -55,10 +55,15 @@ Pestaña **Mailing** del panel. Arma un mail por cliente con su saldo y las
 facturas que lo componen, y lo manda desde **cobranzas@kofumigacion.com**.
 
 - **Desde dónde sale**: este backend es de GIWA, así que no manda mails él
-  mismo. Se los pasa armados al **cartero** (`migracion/cartero/`), un Apps
-  Script aparte publicado por cobranzas@kofumigacion.com, que los envía desde
-  esa cuenta. Solo manda si recibe la clave compartida. El panel muestra
-  "Sale desde …"; si el cartero no responde, no deja enviar.
+  mismo. "Enviar" deja los mails armados en la cola `ko.mailing_cola`, y el
+  **cartero** (`migracion/cartero/`), un Apps Script de la cuenta
+  cobranzas@kofumigacion.com, cada 1 minuto se los pide al backend
+  (`cartero_tomar`), los manda desde esa cuenta y avisa cómo le fue
+  (`cartero_resultado`). Se autentica con la clave compartida. El panel muestra
+  desde qué cuenta sale, si el cartero está activo, cuántos hay en cola y los
+  errores de las últimas 48 h.
+- **Por qué con cola**: la cuenta de KO no logra publicar apps web abiertas,
+  así que el backend no puede llamar al cartero; el cartero llama al backend.
 - **Quién recibe y qué dice** sale de Supabase, de la vista `ko.v_mailing`. El
   saldo usa la misma fórmula que el tablero (`ko.v_saldos_clientes`); si no
   coinciden, el panel no deja mandar.
@@ -86,14 +91,14 @@ facturas que lo componen, y lo manda desde **cobranzas@kofumigacion.com**.
 
 **Script Properties** (editor de Apps Script > Project Settings):
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_ID`,
-`ALLOWED_EMAILS`, `CARTERO_URL`, `CARTERO_CLAVE`.
+`ALLOWED_EMAILS`, `CARTERO_CLAVE`. (`CARTERO_ULTIMO` la escribe el propio
+backend con el último reporte del cartero.)
 
 **Servicio avanzado**: Drive API (v2), para el OCR de respaldo.
 
-**Cartero** (los mails a clientes). Script Properties de este backend:
-`CARTERO_URL` (la URL `/exec` del cartero) y `CARTERO_CLAVE`. Del lado del
-cartero, la misma clave en `CLAVE_CARTERO`. Pasos para crearlo en
-`migracion/cartero/README.md`.
+**Cartero** (los mails a clientes). Script Property de este backend:
+`CARTERO_CLAVE`. Del lado del cartero, la misma clave en `CLAVE_CARTERO`.
+Pasos para instalarlo en `migracion/cartero/README.md`.
 
 **Deployment**: tipo *Web app*, "Execute as: Me", "Who has access: Anyone".
 Tiene que crearse desde el editor la primera vez (Deploy > New deployment):

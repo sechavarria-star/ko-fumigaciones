@@ -20,6 +20,12 @@
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
+    // El cartero (Apps Script de cobranzas@kofumigacion.com) no es una
+    // persona y no tiene token de Google: se autentica con la clave
+    // compartida. Ver Mailing.gs.
+    if (String(body.action || '').indexOf('cartero_') === 0) {
+      return responderOk_(despacharCartero_(body));
+    }
     const usuario = usuarioAutorizado_(body.token);
     return responderOk_(despachar_(body.action, body, usuario));
   } catch (err) {

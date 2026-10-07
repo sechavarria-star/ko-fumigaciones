@@ -1,38 +1,38 @@
 # Cartero — manda los mails desde cobranzas@kofumigacion.com
 
-Apps Script chico que vive en la cuenta **cobranzas@kofumigacion.com** y solo
-manda mails. El backend del panel le pasa cada mail ya armado (ver
-`../apps-script/Mailing.gs`). No toca Supabase ni ve nada más que los mails
-que le mandan.
+Apps Script chico que vive en la cuenta **cobranzas@kofumigacion.com** (una
+cuenta real del Workspace de KO, no un alias: un alias mandaría desde la cuenta
+principal) y solo manda mails.
 
-## Crearlo (una sola vez, logueado como cobranzas@kofumigacion.com)
+Cada 1 minuto, con un activador, le pide al backend del panel los mails que
+están en la cola (`ko.mailing_cola`), los manda desde esa cuenta y le avisa
+cómo le fue. **No se publica como app web**: es el cartero el que llama al
+backend, nunca al revés. No tiene acceso a la base ni a nada más que los mails
+que le pasan; se autentica con una clave compartida.
 
-1. Entrar a https://script.google.com con **cobranzas@kofumigacion.com** →
-   **Nuevo proyecto**. Nombre: `KO Cartero`.
-2. Borrar el contenido de `Código.gs` y pegar el de `Cartero.gs`. Guardar.
+## Instalarlo (una sola vez, logueado como cobranzas@kofumigacion.com)
+
+1. https://script.google.com con **cobranzas@kofumigacion.com** → **Nuevo
+   proyecto**. Nombre: `KO Cartero`.
+2. Borrar el contenido de `Código.gs`, pegar el de `Cartero.gs` y guardar.
 3. **Configuración del proyecto** (engranaje) → **Propiedades de la secuencia
    de comandos** → agregar `CLAVE_CARTERO` con la clave compartida.
-4. Volver al editor, elegir la función **`autorizar`** → **Ejecutar** →
+4. Volver al editor, elegir la función **`instalarActivador`** → **Ejecutar** →
    aceptar los permisos (tildar "Enviar correo electrónico en tu nombre").
-   En el registro tiene que aparecer `Cuenta: cobranzas@kofumigacion.com`.
-5. **Implementar → Nueva implementación** → tipo **Aplicación web**:
-   - Ejecutar como: **Yo (cobranzas@kofumigacion.com)**
-   - Quién tiene acceso: **Cualquier usuario**
-   → **Implementar** y copiar la **URL de la aplicación web** (termina en `/exec`).
+   En el registro tiene que aparecer
+   `Listo: el cartero revisa la cola cada 1 minuto, mandando desde cobranzas@kofumigacion.com`.
 
-## Conectarlo al backend
-
-En el Apps Script del backend (el de GIWA) → Configuración del proyecto →
-Propiedades:
-
-- `CARTERO_URL` = la URL `/exec` del paso 5
-- `CARTERO_CLAVE` = la misma clave del paso 3
+Del lado del backend (Apps Script de GIWA) → Script Properties:
+`CARTERO_CLAVE` = la misma clave.
 
 En el panel, pestaña Mailing, tiene que decir **Sale desde
-cobranzas@kofumigacion.com**.
+cobranzas@kofumigacion.com · Cartero activo**.
 
-## Si se cambia el código del cartero
+## Operación
 
-Pegar la versión nueva en el editor y **Implementar → Gestionar
-implementaciones → editar (lápiz) → Versión: nueva**. Así la URL no cambia.
-Una implementación nueva genera otra URL y hay que actualizar `CARTERO_URL`.
+- **Apagarlo**: correr `desinstalarActivador`. Los mails que se encolen
+  quedan esperando hasta que se vuelva a instalar.
+- **Cambiar el código**: pegar la versión nueva y guardar. No hay que volver a
+  instalar nada (el activador llama a `revisarCola` del código actual).
+- **Si un mail queda "tomado"** y el cartero no confirma en 10 minutos (por
+  ejemplo, se cortó), se vuelve a ofrecer; a los 3 intentos queda como error.

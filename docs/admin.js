@@ -890,14 +890,25 @@ function esc(texto) {
 // Todo lo que se muestra acá lo arma Supabase (ko.v_mailing): el panel solo
 // elige a quién mandarle. Al enviar, el backend vuelve a leer la vista, así
 // que el saldo que sale es el de ese momento.
-let MAILING = { templates: [], destinatarios: [], cuota: 0, remitente: null, carteroError: null, templateId: null };
+// Los mails no salen en el momento: quedan en una cola que el cartero
+// (Apps Script de cobranzas@) revisa cada 1 minuto. Ver Mailing.gs.
+let MAILING = { templates: [], destinatarios: [], cartero: null, cola: null, templateId: null };
 let MAILING_ABIERTO = null;
 
 const ESTADOS_MAILING = {
   listo: { texto: "Listo", clase: "ok" },
   sin_email: { texto: "Sin email", clase: "warn" },
   enviado_reciente: { texto: "Enviado hace poco", clase: "" },
+  en_cola: { texto: "En cola", clase: "" },
 };
+
+function haceCuanto(iso) {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "hace menos de un minuto";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  return h < 48 ? `hace ${h} h` : `el ${new Date(iso).toLocaleDateString("es-AR")}`;
+}
 
 async function cargarMailing(templateId) {
   const cont = document.getElementById("mailing-contenido");
@@ -905,7 +916,6 @@ async function cargarMailing(templateId) {
   try {
     const vista = await llamarBackend("mailing_vista", {});
     MAILING.templates = vista.templates;
-    MAILING.cuota = vista.cuota;
     const sel = document.getElementById("mailing-template");
     sel.innerHTML = vista.templates.map((t) => `<option value="${esc(t.id)}">${esc(t.id)}</option>`).join("");
     if (!vista.templates.length) {
@@ -917,9 +927,8 @@ async function cargarMailing(templateId) {
     sel.value = MAILING.templateId;
     const conDatos = await llamarBackend("mailing_vista", { template_id: MAILING.templateId });
     MAILING.destinatarios = conDatos.destinatarios || [];
-    MAILING.cuota = conDatos.cuota;
-    MAILING.remitente = conDatos.remitente;
-    MAILING.carteroError = conDatos.cartero_error;
+    MAILING.cartero = conDatos.cartero;
+    MAILING.cola = conDatos.cola;
     MAILING_ABIERTO = null;
     renderMailing();
   } catch (err) {
@@ -949,11 +958,23 @@ function renderMailing() {
   // KO: en ese caso no se deja mandar nada.
   const saldoTablero = new Map(CLIENTES_VIEW.map((c) => [c.cuit, c.total_pendiente]));
   const desalineados = ds.filter((d) => Math.abs((saldoTablero.get(d.cuit) ?? 0) - d.saldo) > 1);
-  const puedeMandar = esAdmin && !t.sin_completar && !desalineados.length && !MAILING.carteroError;
+  const puedeMandar = esAdmin && !t.sin_completar && !desalineados.length;
+  const c = MAILING.cartero || {};
 
   const avisos = [];
-  if (MAILING.carteroError) {
-    avisos.push(`No se puede enviar: ${esc(MAILING.carteroError)}`);
+  // Con el cartero caido igual se puede encolar: los mails salen cuando
+  // vuelva. Pero que se sepa.
+  if (!c.visto_en) {
+    avisos.push("El cartero todavía no se conectó nunca: los mails van a quedar en la cola hasta que esté instalado (ver <code>migracion/cartero/README.md</code>).");
+  } else if (!c.activo) {
+    avisos.push(`El cartero no se reporta desde ${haceCuanto(c.visto_en)}: los mails quedan en la cola hasta que vuelva.`);
+  }
+  const errores = (MAILING.cola && MAILING.cola.errores) || [];
+  if (errores.length) {
+    avisos.push(
+      `${errores.length} mail${errores.length === 1 ? "" : "s"} con error en las últimas 48 h: ` +
+        errores.slice(0, 3).map((e) => `${esc(e.para)} (${esc(e.error)})`).join("; ") + (errores.length > 3 ? "…" : "")
+    );
   }
   if (t.sin_completar) {
     avisos.push(`El template todavía tiene datos sin completar (<code>[COMPLETAR …]</code>). Editalo en Supabase, tabla <code>ko.mailing_templates</code>, fila <code>${esc(t.id)}</code>; hasta entonces no se puede enviar.`);
@@ -988,16 +1009,18 @@ function renderMailing() {
     <div class="draft-card">
       <div class="draft-row"><span class="k">Template</span><span>${esc(t.descripcion || t.id)}</span></div>
       <div class="draft-row"><span class="k">Criterio</span><span>${rangoTemplate(t)} · no repite antes de ${t.dias_entre_envios} días</span></div>
-      <div class="draft-row"><span class="k">Destinatarios</span><span>${ds.length} en total · ${listos.length} listos · ${cuenta("sin_email")} sin email · ${cuenta("enviado_reciente")} enviados hace poco</span></div>
-      <div class="draft-row"><span class="k">Sale desde</span><span>${MAILING.remitente ? esc(MAILING.remitente) : "—"}</span></div>
-      <div class="draft-row"><span class="k">Cuota de Gmail hoy</span><span>${MAILING.carteroError ? "—" : `${MAILING.cuota} destinatarios`}</span></div>
+      <div class="draft-row"><span class="k">Destinatarios</span><span>${ds.length} en total · ${listos.length} listos · ${cuenta("sin_email")} sin email · ${cuenta("en_cola")} en cola · ${cuenta("enviado_reciente")} enviados hace poco</span></div>
+      <div class="draft-row"><span class="k">Sale desde</span><span>${c.cuenta ? esc(c.cuenta) : "—"}</span></div>
+      <div class="draft-row"><span class="k">Cartero</span><span>${c.visto_en ? `${c.activo ? "activo" : "sin conexión"} · último contacto ${haceCuanto(c.visto_en)}` : "sin instalar"}</span></div>
+      <div class="draft-row"><span class="k">Cuota de Gmail hoy</span><span>${c.cuota != null ? `${c.cuota} destinatarios` : "—"}</span></div>
+      <div class="draft-row"><span class="k">En cola ahora</span><span>${(MAILING.cola && MAILING.cola.en_espera) || 0} mails</span></div>
       ${avisos.map((a) => `<div class="warn-text">${a}</div>`).join("")}
     </div>
     <div class="lote-resumen">
       ${puedeMandar ? `
       <div class="lote-acciones lote-acciones-top">
         <button id="btn-enviar-mailing" disabled>Enviar 0 mails</button>
-        <span class="resumen-txt">Sale desde ${esc(MAILING.remitente || "")}.</span>
+        <span class="resumen-txt">Quedan en cola y salen desde ${esc(c.cuenta || "la cuenta de cobranzas")} en el próximo minuto.</span>
       </div>` : ""}
       <div class="table-wrap">
         <table>
@@ -1032,7 +1055,13 @@ function renderMailing() {
     btn.textContent = "Enviando…";
     try {
       const r = await llamarBackend("mailing_prueba", { template_id: MAILING.templateId, cuit: btn.dataset.cuit });
-      mostrarAviso(`Te mandé el mail de ${esc(r.cliente)} a ${esc(r.enviado_a)}, desde ${esc(MAILING.remitente || "el cartero")}. Al cliente no le llegó nada.`, "ok");
+      mostrarAviso(
+        `Puse en la cola el mail de ${esc(r.cliente)} para ${esc(r.enviado_a)}` +
+          (r.cartero_activo ? ": te llega en el próximo minuto." : ", pero el cartero no está conectado: va a salir cuando vuelva.") +
+          " Al cliente no le llega nada.",
+        "ok"
+      );
+      cargarMailing(MAILING.templateId);
     } catch (err) {
       avisarError(err, "No se pudo mandar la prueba: ");
     }
@@ -1072,7 +1101,7 @@ async function enviarMailing(e) {
   if (!cuits.length) return;
   const total = cuits.reduce((s, c) => s + (MAILING.destinatarios.find((d) => d.cuit === c)?.saldo || 0), 0);
   const ok = confirm(
-    `Vas a mandar ${cuits.length} mail${cuits.length === 1 ? "" : "s"} con el template "${MAILING.templateId}" ` +
+    `Vas a poner en la cola ${cuits.length} mail${cuits.length === 1 ? "" : "s"} con el template "${MAILING.templateId}" ` +
       `(saldo total ${fmtMoney(total)}).\n\nEsto no se puede deshacer. ¿Enviar?`
   );
   if (!ok) return;
@@ -1080,10 +1109,13 @@ async function enviarMailing(e) {
   btn.textContent = "Enviando…";
   try {
     const r = await llamarBackend("mailing_enviar", { template_id: MAILING.templateId, cuits });
-    const partes = [`Se enviaron ${r.enviados.length} mail${r.enviados.length === 1 ? "" : "s"}.`];
-    if (r.omitidos.length) partes.push(`${r.omitidos.length} se omitieron porque cambiaron desde la vista previa (ya pagaron, sin email o ya se les mandó).`);
-    if (r.fallidos.length) partes.push(`Fallaron ${r.fallidos.length}: ${r.fallidos.map((f) => `${esc(f.nombre)} (${esc(f.error)})`).join("; ")}`);
-    mostrarAviso(partes.join(" "), r.fallidos.length ? "error" : "ok");
+    const n = r.encolados.length;
+    const partes = [
+      `${n} mail${n === 1 ? "" : "s"} en la cola` +
+        (r.cartero_activo ? ": salen en los próximos minutos." : ". El cartero no está conectado: salen cuando vuelva."),
+    ];
+    if (r.omitidos.length) partes.push(`${r.omitidos.length} se omitieron porque cambiaron desde la vista previa (ya pagaron, sin email, ya en cola o ya se les mandó).`);
+    mostrarAviso(partes.join(" "), "ok");
   } catch (err) {
     avisarError(err, "No se pudo enviar: ");
   }
