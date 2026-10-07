@@ -890,7 +890,7 @@ function esc(texto) {
 // Todo lo que se muestra acá lo arma Supabase (ko.v_mailing): el panel solo
 // elige a quién mandarle. Al enviar, el backend vuelve a leer la vista, así
 // que el saldo que sale es el de ese momento.
-let MAILING = { templates: [], destinatarios: [], cuota: 0, templateId: null };
+let MAILING = { templates: [], destinatarios: [], cuota: 0, remitente: null, carteroError: null, templateId: null };
 let MAILING_ABIERTO = null;
 
 const ESTADOS_MAILING = {
@@ -918,6 +918,8 @@ async function cargarMailing(templateId) {
     const conDatos = await llamarBackend("mailing_vista", { template_id: MAILING.templateId });
     MAILING.destinatarios = conDatos.destinatarios || [];
     MAILING.cuota = conDatos.cuota;
+    MAILING.remitente = conDatos.remitente;
+    MAILING.carteroError = conDatos.cartero_error;
     MAILING_ABIERTO = null;
     renderMailing();
   } catch (err) {
@@ -947,9 +949,12 @@ function renderMailing() {
   // KO: en ese caso no se deja mandar nada.
   const saldoTablero = new Map(CLIENTES_VIEW.map((c) => [c.cuit, c.total_pendiente]));
   const desalineados = ds.filter((d) => Math.abs((saldoTablero.get(d.cuit) ?? 0) - d.saldo) > 1);
-  const puedeMandar = esAdmin && !t.sin_completar && !desalineados.length;
+  const puedeMandar = esAdmin && !t.sin_completar && !desalineados.length && !MAILING.carteroError;
 
   const avisos = [];
+  if (MAILING.carteroError) {
+    avisos.push(`No se puede enviar: ${esc(MAILING.carteroError)}`);
+  }
   if (t.sin_completar) {
     avisos.push(`El template todavía tiene datos sin completar (<code>[COMPLETAR …]</code>). Editalo en Supabase, tabla <code>ko.mailing_templates</code>, fila <code>${esc(t.id)}</code>; hasta entonces no se puede enviar.`);
   }
@@ -984,14 +989,15 @@ function renderMailing() {
       <div class="draft-row"><span class="k">Template</span><span>${esc(t.descripcion || t.id)}</span></div>
       <div class="draft-row"><span class="k">Criterio</span><span>${rangoTemplate(t)} · no repite antes de ${t.dias_entre_envios} días</span></div>
       <div class="draft-row"><span class="k">Destinatarios</span><span>${ds.length} en total · ${listos.length} listos · ${cuenta("sin_email")} sin email · ${cuenta("enviado_reciente")} enviados hace poco</span></div>
-      <div class="draft-row"><span class="k">Cuota de Gmail hoy</span><span>${MAILING.cuota} destinatarios</span></div>
+      <div class="draft-row"><span class="k">Sale desde</span><span>${MAILING.remitente ? esc(MAILING.remitente) : "—"}</span></div>
+      <div class="draft-row"><span class="k">Cuota de Gmail hoy</span><span>${MAILING.carteroError ? "—" : `${MAILING.cuota} destinatarios`}</span></div>
       ${avisos.map((a) => `<div class="warn-text">${a}</div>`).join("")}
     </div>
     <div class="lote-resumen">
       ${puedeMandar ? `
       <div class="lote-acciones lote-acciones-top">
         <button id="btn-enviar-mailing" disabled>Enviar 0 mails</button>
-        <span class="resumen-txt">Se manda desde la cuenta dueña del Apps Script.</span>
+        <span class="resumen-txt">Sale desde ${esc(MAILING.remitente || "")}.</span>
       </div>` : ""}
       <div class="table-wrap">
         <table>
@@ -1026,7 +1032,7 @@ function renderMailing() {
     btn.textContent = "Enviando…";
     try {
       const r = await llamarBackend("mailing_prueba", { template_id: MAILING.templateId, cuit: btn.dataset.cuit });
-      mostrarAviso(`Te mandé el mail de ${esc(r.cliente)} a ${esc(r.enviado_a)}. Al cliente no le llegó nada.`, "ok");
+      mostrarAviso(`Te mandé el mail de ${esc(r.cliente)} a ${esc(r.enviado_a)}, desde ${esc(MAILING.remitente || "el cartero")}. Al cliente no le llegó nada.`, "ok");
     } catch (err) {
       avisarError(err, "No se pudo mandar la prueba: ");
     }

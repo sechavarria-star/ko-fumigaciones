@@ -52,8 +52,13 @@ vidrio": esos emails son admin siempre, exista o no la fila en `ko.usuarios`
 ## Mailing a clientes
 
 Pestaña **Mailing** del panel. Arma un mail por cliente con su saldo y las
-facturas que lo componen, y lo manda desde la cuenta dueña del Apps Script.
+facturas que lo componen, y lo manda desde **cobranzas@kofumigacion.com**.
 
+- **Desde dónde sale**: este backend es de GIWA, así que no manda mails él
+  mismo. Se los pasa armados al **cartero** (`migracion/cartero/`), un Apps
+  Script aparte publicado por cobranzas@kofumigacion.com, que los envía desde
+  esa cuenta. Solo manda si recibe la clave compartida. El panel muestra
+  "Sale desde …"; si el cartero no responde, no deja enviar.
 - **Quién recibe y qué dice** sale de Supabase, de la vista `ko.v_mailing`. El
   saldo usa la misma fórmula que el tablero (`ko.v_saldos_clientes`); si no
   coinciden, el panel no deja mandar.
@@ -74,22 +79,21 @@ facturas que lo componen, y lo manda desde la cuenta dueña del Apps Script.
 - **Emails**: se cargan en la pestaña Clientes (clic en la fila para editar).
   Varios separados por coma.
 - **Permisos**: la vista previa la ve admin y supervisor; enviar, solo admin.
-- **Cuota de Gmail**: 100 destinatarios por día en una cuenta gmail.com,
-  1.500 en Workspace. El panel muestra cuánto queda.
+- **Cuota de Gmail**: la de cobranzas@ (Workspace: 1.500 destinatarios por
+  día). El panel muestra cuánto queda.
 
 ## Configuración (por si hay que recrearla)
 
 **Script Properties** (editor de Apps Script > Project Settings):
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_CLIENT_ID`,
-`ALLOWED_EMAILS`.
+`ALLOWED_EMAILS`, `CARTERO_URL`, `CARTERO_CLAVE`.
 
 **Servicio avanzado**: Drive API (v2), para el OCR de respaldo.
 
-**Permiso de Gmail**: el mailing usa `MailApp`. Con la cuenta que deploya,
-correr `autorizarGmail` desde el editor y, en la pantalla de permisos,
-tildar "Enviar correo electrónico en tu nombre". Correr otra función (como
-`doGet`) no alcanza: el permiso puede quedar sin otorgar y la pestaña
-Mailing falla con "No cuentas con el permiso para llamar a MailApp".
+**Cartero** (los mails a clientes). Script Properties de este backend:
+`CARTERO_URL` (la URL `/exec` del cartero) y `CARTERO_CLAVE`. Del lado del
+cartero, la misma clave en `CLAVE_CARTERO`. Pasos para crearlo en
+`migracion/cartero/README.md`.
 
 **Deployment**: tipo *Web app*, "Execute as: Me", "Who has access: Anyone".
 Tiene que crearse desde el editor la primera vez (Deploy > New deployment):
