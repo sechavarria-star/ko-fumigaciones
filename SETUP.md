@@ -79,10 +79,11 @@ facturas que lo componen, y lo manda desde la cuenta dueña del Apps Script.
 
 **Servicio avanzado**: Drive API (v2), para el OCR de respaldo.
 
-**Permiso de Gmail**: el mailing usa `MailApp`. La primera vez después de
-subirlo hay que correr cualquier función desde el editor (por ej.
-`doGet`) y aceptar el permiso "Enviar correo como usted"; si no, el
-Web App falla con un error de autorización.
+**Permiso de Gmail**: el mailing usa `MailApp`. Con la cuenta que deploya,
+correr `autorizarGmail` desde el editor y, en la pantalla de permisos,
+tildar "Enviar correo electrónico en tu nombre". Correr otra función (como
+`doGet`) no alcanza: el permiso puede quedar sin otorgar y la pestaña
+Mailing falla con "No cuentas con el permiso para llamar a MailApp".
 
 **Deployment**: tipo *Web app*, "Execute as: Me", "Who has access: Anyone".
 Tiene que crearse desde el editor la primera vez (Deploy > New deployment):
