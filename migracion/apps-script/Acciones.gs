@@ -15,7 +15,7 @@ var RETENCION_MAX = 0.12;
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
   // filas del límite de PostgREST - ver el comentario en Supabase.gs.
-  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email', 'cuit');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
     clientes[c.cuit] = {
@@ -24,6 +24,7 @@ function accObtenerDatos_(usuario) {
       direccion: c.direccion,
       provincia: c.provincia,
       email: c.email || '',
+      paga_por: c.paga_por || '',
     };
   });
 
@@ -173,13 +174,7 @@ function accConfirmarCuit_(body, usuario) {
 // recién consolidar_extractos confirma de verdad.
 function accParseExtracto_(body, usuario) {
   const texto = textoDelPdf_(body, 'extracto.pdf');
-  const cuits = sbGetTodo('clientes', 'select=cuit', 'cuit').map(function (c) { return c.cuit; });
-
-  const movimientos = movimientosDelExtracto_(texto, cuits).filter(function (mov) {
-    return mov.importe > 0 && mov.cuits.length && esCobro_(mov.descripcion);
-  });
-
-  const r = matchearCobros_(movimientos);
+  const r = matchearCobros_(movimientosDeCobro_(texto));
   return { extracto_label: body.filename, matches: r.matches, aproximados: r.aproximados };
 }
 
@@ -469,12 +464,9 @@ function accRegistrarCobros_(body, usuario) {
   const texto = textoDelPdf_(body, 'extracto.pdf');
   const etiqueta = body.filename || '';
 
-  const cuits = sbGetTodo('clientes', 'select=cuit', 'cuit').map(function (c) { return c.cuit; });
-
   const vistos = {};
   const filas = [];
-  movimientosDelExtracto_(texto, cuits).forEach(function (mov) {
-    if (mov.importe <= 0 || !mov.cuits.length || !esCobro_(mov.descripcion)) return;
+  movimientosDeCobro_(texto).forEach(function (mov) {
     mov.cuits.forEach(function (cuit) {
       const base = etiqueta + '|' + firmaMovimiento_(cuit, mov.importe, mov.fecha);
       const orden = (vistos[base] = (vistos[base] || 0) + 1);
@@ -486,6 +478,7 @@ function accRegistrarCobros_(body, usuario) {
         extracto: etiqueta,
         firma: base + '|' + orden,
         orden: orden,
+        cuit_pagador: mov.pagadores[cuit] || null,
       });
     });
   });
@@ -500,6 +493,40 @@ function accRegistrarCobros_(body, usuario) {
     registrados: filas.length,
     total: filas.reduce(function (s, f) { return s + f.monto; }, 0),
   };
+}
+
+/**
+ * Los cobros de un extracto, con el CUIT ya traducido al del cliente
+ * titular.
+ *
+ * Hay clientes que no pagan con su propio CUIT: el consorcio de Av. Alvear
+ * 1592 paga por medio de su administracion (Costa Propiedades). Ese CUIT
+ * esta cargado con `paga_por` = el del consorcio, y aca su pago pasa a ser
+ * del consorcio: de ahi en adelante (matcheo, firma, ko.cobros, saldo, mails)
+ * todo lo trata como un pago del titular. `pagadores` guarda quien pago de
+ * verdad, para dejarlo en ko.cobros.cuit_pagador.
+ */
+function movimientosDeCobro_(texto) {
+  const clientes = sbGetTodo('clientes', 'select=cuit,paga_por', 'cuit');
+  const titular = {};
+  clientes.forEach(function (c) { titular[c.cuit] = c.paga_por || c.cuit; });
+
+  return movimientosDelExtracto_(texto, clientes.map(function (c) { return c.cuit; }))
+    .filter(function (mov) {
+      return mov.importe > 0 && mov.cuits.length && esCobro_(mov.descripcion);
+    })
+    .map(function (mov) {
+      const cuits = [];
+      const pagadores = {};
+      mov.cuits.forEach(function (c) {
+        const t = titular[c];
+        if (cuits.indexOf(t) === -1) cuits.push(t);
+        if (t !== c) pagadores[t] = c;
+      });
+      mov.cuits = cuits;
+      mov.pagadores = pagadores;
+      return mov;
+    });
 }
 
 function firmaMovimiento_(cuit, importe, fecha) {
@@ -578,7 +605,24 @@ function accUpsertCliente_(body, usuario) {
   // Solo se toca si viene: un front viejo que no conoce el campo no tiene que
   // borrar el email que otro cargo.
   if (body.email !== undefined) fila.email = normalizarEmails_(body.email);
+  if (body.paga_por !== undefined) fila.paga_por = validarPagaPor_(cuit, body.paga_por);
   return sbUpsert('clientes', [fila], 'cuit')[0];
+}
+
+// "Paga por": el CUIT del cliente por el que paga este (vacio = paga por si
+// mismo). Un solo salto: el titular no puede pagar a su vez por otro, ni
+// este CUIT ser titular de otros - si no, un pago se podria ir encadenando.
+function validarPagaPor_(cuit, valor) {
+  const titular = String(valor || '').replace(/\D/g, '');
+  if (!titular) return null;
+  if (!/^\d{11}$/.test(titular)) throw new ApiError(400, '"Paga por" tiene que ser un CUIT de 11 dígitos');
+  if (titular === cuit) throw new ApiError(400, 'Un cliente no puede pagar por sí mismo');
+  const t = sbGet('clientes', 'select=cuit,paga_por&cuit=eq.' + titular)[0];
+  if (!t) throw new ApiError(400, 'El CUIT ' + titular + ' no está cargado en Clientes');
+  if (t.paga_por) throw new ApiError(400, 'Ese cliente ya paga por otro: no se puede encadenar');
+  const dependientes = sbGet('clientes', 'select=cuit&paga_por=eq.' + cuit);
+  if (dependientes.length) throw new ApiError(400, 'Hay clientes que pagan por este CUIT: no puede pagar a su vez por otro');
+  return titular;
 }
 
 // Uno o varios emails separados por coma (los consorcios suelen tener mas de
