@@ -12,13 +12,13 @@
 var MARCA_SIN_COMPLETAR = '[COMPLETAR';
 
 function templatesActivos_() {
-  return sbGet('mailing_templates', 'select=id,descripcion,saldo_min,saldo_max,dias_entre_envios,asunto,cuerpo&activo=is.true&order=id');
+  return sbGet('mailing_templates', 'select=id,descripcion,saldo_min,saldo_max,dias_entre_envios,asunto,cuerpo,datos_pago,firma&activo=is.true&order=id');
 }
 
 function filasMailing_(templateId) {
   return sbGetTodo(
     'v_mailing',
-    'select=cuit,nombre,email,saldo,cantidad_facturas,asunto,cuerpo,remitente_nombre,responder_a,ultimo_envio,estado' +
+    'select=cuit,nombre,email,saldo,cantidad_facturas,asunto,cuerpo,cuerpo_html,remitente_nombre,responder_a,ultimo_envio,estado' +
       '&template_id=eq.' + encodeURIComponent(templateId),
     'cuit'
   ).map(function (f) {
@@ -28,7 +28,17 @@ function filasMailing_(templateId) {
 }
 
 function sinCompletar_(t) {
-  return t.asunto.indexOf(MARCA_SIN_COMPLETAR) !== -1 || t.cuerpo.indexOf(MARCA_SIN_COMPLETAR) !== -1;
+  return [t.asunto, t.cuerpo, t.datos_pago, t.firma].some(function (x) {
+    return (x || '').indexOf(MARCA_SIN_COMPLETAR) !== -1;
+  });
+}
+
+// Se manda HTML con el texto plano como alternativa, para los clientes de
+// correo que no muestran HTML.
+function opcionesMail_(f) {
+  const opciones = { name: f.remitente_nombre, htmlBody: f.cuerpo_html };
+  if (f.responder_a) opciones.replyTo = f.responder_a;
+  return opciones;
 }
 
 // Cada direccion cuenta por separado contra la cuota diaria de Gmail.
@@ -73,7 +83,7 @@ function accMailingEnviar_(body, usuario) {
   if (!templateId) throw new ApiError(400, 'Falta template_id');
   if (!pedidos.length) throw new ApiError(400, 'No se eligió ningún cliente');
 
-  const t = sbGet('mailing_templates', 'select=id,asunto,cuerpo,activo&id=eq.' + encodeURIComponent(templateId))[0];
+  const t = sbGet('mailing_templates', 'select=id,asunto,cuerpo,datos_pago,firma,activo&id=eq.' + encodeURIComponent(templateId))[0];
   if (!t || !t.activo) throw new ApiError(404, 'No existe un template activo "' + templateId + '"');
   if (sinCompletar_(t)) {
     throw new ApiError(400, 'El template todavía tiene datos sin completar ([COMPLETAR ...]). Editalo en Supabase antes de mandar.');
@@ -101,9 +111,7 @@ function accMailingEnviar_(body, usuario) {
   const fallidos = [];
   aEnviar.forEach(function (f) {
     try {
-      const opciones = { name: f.remitente_nombre };
-      if (f.responder_a) opciones.replyTo = f.responder_a;
-      MailApp.sendEmail(f.email, f.asunto, f.cuerpo, opciones);
+      MailApp.sendEmail(f.email, f.asunto, f.cuerpo, opcionesMail_(f));
     } catch (err) {
       fallidos.push({ cuit: f.cuit, nombre: f.nombre, error: err.message || String(err) });
       return;
@@ -115,6 +123,7 @@ function accMailingEnviar_(body, usuario) {
       saldo: f.saldo,
       asunto: f.asunto,
       cuerpo: f.cuerpo,
+      cuerpo_html: f.cuerpo_html,
       enviado_por: usuario.email,
     }]);
     enviados.push({ cuit: f.cuit, nombre: f.nombre });
@@ -135,13 +144,19 @@ function accMailingPrueba_(body, usuario) {
   if (!body.template_id || !body.cuit) throw new ApiError(400, 'Falta template_id o cuit');
   const f = filasMailing_(body.template_id).filter(function (x) { return x.cuit === body.cuit; })[0];
   if (!f) throw new ApiError(404, 'Ese cliente no está en el mailing de este template');
-  const opciones = { name: f.remitente_nombre };
-  if (f.responder_a) opciones.replyTo = f.responder_a;
+  const aviso = 'Mail de prueba: así le llegaría a ' + f.nombre + ' (' + (f.email || 'sin email cargado') + '). No se le mandó nada al cliente.';
+  const opciones = opcionesMail_(f);
+  // Franja amarilla arriba de todo, para que la prueba no se confunda con un
+  // mail real si se reenvía.
+  opciones.htmlBody = f.cuerpo_html.replace(
+    /(<body[^>]*>)/,
+    '$1<div style="background:#fef3c7;color:#92400e;font-family:Arial,sans-serif;font-size:13px;padding:10px 16px;text-align:center;">' +
+      aviso.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>'
+  );
   MailApp.sendEmail(
     usuario.email,
     '[PRUEBA] ' + f.asunto,
-    'Mail de prueba: así le llegaría a ' + f.nombre + ' (' + (f.email || 'sin email cargado') + ').\n' +
-      'No se le mandó nada al cliente.\n\n----------------------------------------\n\n' + f.cuerpo,
+    aviso + '\n\n----------------------------------------\n\n' + f.cuerpo,
     opciones
   );
   return { enviado_a: usuario.email, cliente: f.nombre };

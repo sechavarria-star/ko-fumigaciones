@@ -976,7 +976,7 @@ function renderMailing() {
         <td class="num">${fmtMoney(d.saldo)}</td>
         <td><span class="badge ${est.clase}">${est.texto}</span>${d.ultimo_envio ? `<div class="archivo">último: ${new Date(d.ultimo_envio).toLocaleDateString("es-AR")}</div>` : ""}</td>
       </tr>
-      ${abierto ? `<tr><td colspan="5"><div class="mail-preview"><div class="mail-asunto">${esc(d.asunto)}</div><pre>${esc(d.cuerpo)}</pre><button type="button" class="btn-confirmar-pago btn-mail-prueba" data-cuit="${d.cuit}">Enviarme este mail de prueba</button></div></td></tr>` : ""}`;
+      ${abierto ? `<tr><td colspan="5"><div class="mail-preview"><div class="mail-asunto">${esc(d.asunto)}</div>${d.cuerpo_html ? `<iframe class="mail-html" sandbox="allow-same-origin" title="Vista previa del mail" srcdoc="${esc(d.cuerpo_html)}"></iframe>` : `<pre>${esc(d.cuerpo)}</pre>`}<button type="button" class="btn-confirmar-pago btn-mail-prueba" data-cuit="${d.cuit}">Enviarme este mail de prueba</button></div></td></tr>` : ""}`;
   });
 
   cont.innerHTML = `
@@ -1014,6 +1014,12 @@ function renderMailing() {
       actualizarBotonMailing();
     })
   );
+  // El iframe no ejecuta scripts (sandbox), pero con allow-same-origin se
+  // puede medir el alto del mail para mostrarlo entero, sin doble scroll.
+  const marco = cont.querySelector(".mail-html");
+  marco?.addEventListener("load", () => {
+    marco.style.height = marco.contentDocument.documentElement.scrollHeight + "px";
+  });
   cont.querySelector(".btn-mail-prueba")?.addEventListener("click", async (e) => {
     const btn = e.target;
     btn.disabled = true;

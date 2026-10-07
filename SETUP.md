@@ -58,10 +58,16 @@ facturas que lo componen, y lo manda desde la cuenta dueña del Apps Script.
   saldo usa la misma fórmula que el tablero (`ko.v_saldos_clientes`); si no
   coinciden, el panel no deja mandar.
 - **El texto** se edita en la tabla `ko.mailing_templates` (Table Editor de
-  Supabase). Variables: `{{nombre}}`, `{{cuit}}`, `{{saldo}}`, `{{facturas}}`,
-  `{{cantidad_facturas}}`. El rango de saldo es `saldo_min` < saldo <
+  Supabase), en texto plano: la base arma sola la versión HTML (encabezado,
+  tabla de facturas con total, recuadro de pago) y se mandan las dos.
+  Variables: `{{nombre}}`, `{{cuit}}`, `{{saldo}}`, `{{facturas}}`,
+  `{{cantidad_facturas}}`, `{{datos_pago}}`, `{{firma}}`. Los datos de pago y
+  la firma tienen columna propia (`datos_pago`, `firma`), una línea por dato;
+  en `datos_pago` lo que va antes de ":" sale como etiqueta. El rango de saldo es `saldo_min` < saldo <
   `saldo_max`. Para otro corte (otro rango, otro tono) se agrega una fila.
 - **Un texto con `[COMPLETAR` no se puede mandar**: el backend lo rechaza.
+  "Enviarme este mail de prueba" (en la vista previa) sí funciona igual: le
+  llega solo a quien está logueado y no queda registrado.
 - **No se repite**: a un cliente no se le vuelve a mandar el mismo template
   antes de `dias_entre_envios` (30 por defecto). Todo lo enviado queda en
   `ko.mailing_envios`, con el saldo y el texto de ese día.
