@@ -13,7 +13,7 @@ que le pasan; se autentica con una clave compartida.
 ## Instalarlo (una sola vez, logueado como facturacion@kofumigacion.com)
 
 1. https://script.google.com con **facturacion@kofumigacion.com** → **Nuevo
-   proyecto**. Nombre: `KO Cartero`.
+   proyecto**. Nombre: `kofumigaciones`.
 2. Borrar el contenido de `Código.gs`, pegar el de `Cartero.gs` y guardar.
 3. **Configuración del proyecto** (engranaje) → **Propiedades de la secuencia
    de comandos** → agregar `CLAVE_CARTERO` con la clave compartida.
