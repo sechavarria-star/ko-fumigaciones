@@ -7,7 +7,7 @@ tres piezas:
 
 | pieza | qué es | dónde |
 | --- | --- | --- |
-| Frontend | sitio estático (`docs/`) | GitHub Pages: https://sechavarria-star.github.io/ko-fumigaciones/ |
+| Frontend | sitio estático (`docs/`) | GitHub Pages en **https://app.kofumigacion.com** (`docs/CNAME`; la dirección vieja sechavarria-star.github.io/ko-fumigaciones redirige ahí) |
 | Backend | Web App de Apps Script | `migracion/apps-script/` (script id en `.clasp.json`) |
 | Base | Postgres, schema `ko` | Supabase |
 
@@ -111,7 +111,13 @@ y los SQL de `migracion/supabase/` corridos en orden (`01_schema`,
 
 **Google OAuth Client ID** (proyecto `n8nGiwa` en Google Cloud): tipo
 Aplicación web, con `https://sechavarria-star.github.io` en "Orígenes de
-JavaScript autorizados". No usa URI de redirección.
+JavaScript autorizados", y también `https://app.kofumigacion.com` (el dominio
+del panel). No usa URI de redirección. Si se cambia el dominio del panel, el
+origen nuevo hay que agregarlo acá ANTES de activarlo, o el login se rompe.
+
+**Dominio**: `app.kofumigacion.com` es un CNAME a `sechavarria-star.github.io`
+en el DNS de kofumigacion.com (Google Workspace de KO). En GitHub: Settings >
+Pages > Custom domain, con "Enforce HTTPS".
 
 ## Lo que quedó de la etapa anterior
 
