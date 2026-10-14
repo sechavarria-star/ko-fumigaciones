@@ -199,7 +199,24 @@ let RESUMEN = null;
 function renderMeta() {
   const el = document.getElementById("meta");
   const periodos = [...new Set(FACTURAS.map((f) => f.periodo))].sort();
-  el.textContent = `Períodos facturados: ${periodos.join(", ") || "—"} · ${Object.keys(CLIENTES).length} clientes en la base · ${FACTURAS.length} facturas cargadas`;
+  // Meses con extracto cargado, por la fecha de los cobros (dd/mm/aa). Los
+  // resúmenes del Santander cortan a principio del mes siguiente (el de agosto
+  // 2026 llega al 10/09): un mes cuenta recién si tiene cobros desde el día
+  // 15, si no el de agosto haría figurar septiembre por sus primeros días. Si un mes facturado no tiene
+  // extracto, se avisa: sus pagos todavía no pueden estar conciliados.
+  const extractos = [
+    ...new Set(
+      COBROS_DETALLE.map((c) => {
+        const [d, m, a] = (c.fecha || "").split("/");
+        return a && m && Number(d) >= 15 ? `20${a}-${m}` : null;
+      }).filter(Boolean)
+    ),
+  ].sort();
+  const faltan = periodos.filter((p) => !extractos.includes(p));
+  el.textContent =
+    `Períodos facturados: ${periodos.join(", ") || "—"} · ` +
+    `Extractos cargados: ${extractos.join(", ") || "—"}${faltan.length ? ` (falta${faltan.length === 1 ? "" : "n"} ${faltan.join(", ")})` : ""} · ` +
+    `${Object.keys(CLIENTES).length} clientes en la base · ${FACTURAS.length} facturas cargadas`;
 }
 
 function renderPendientesBanner() {
