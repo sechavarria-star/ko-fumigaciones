@@ -607,6 +607,13 @@ function accUpsertCliente_(body, usuario) {
   // borrar el email que otro cargo.
   if (body.email !== undefined) fila.email = normalizarEmails_(body.email);
   if (body.paga_por !== undefined) fila.paga_por = validarPagaPor_(cuit, body.paga_por);
+  // "Sin cobro": la leyenda de un cliente al que no se le cobra (sus
+  // facturas cuentan como pagas). Vacio = cliente normal.
+  if (body.sin_cobro !== undefined) {
+    const leyenda = String(body.sin_cobro || '').trim();
+    if (leyenda.length > 60) throw new ApiError(400, 'La leyenda de "sin cobro" puede tener hasta 60 caracteres');
+    fila.sin_cobro = leyenda || null;
+  }
   return sbUpsert('clientes', [fila], 'cuit')[0];
 }
 

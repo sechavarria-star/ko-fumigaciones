@@ -832,14 +832,22 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     provincia: (CLIENTES[cuit] && CLIENTES[cuit].provincia) || "",
     email: fd.get("email").trim(),
     paga_por: fd.get("paga_por").replace(/\D/g, ""),
+    sin_cobro: fd.get("sin_cobro").trim(),
   };
+  // Vaciar "sin cobro" hace que el cliente vuelva a figurar como deudor de
+  // todo lo facturado: que sea a propósito y no por cargar el CUIT a mano
+  // sin abrir la fila.
+  const sinCobroAntes = CLIENTES[cuit] && CLIENTES[cuit].sin_cobro;
+  if (sinCobroAntes && !info.sin_cobro &&
+      !confirm(`Este cliente figura como sin cobro ("${sinCobroAntes}"). Si guardás con ese campo vacío, vuelve a cobrarse normal y su saldo pasa a figurar como deuda. ¿Seguir?`)) {
+    return;
+  }
   try {
     const guardado = await llamarBackend("upsert_cliente", { cuit, ...info });
     // El backend normaliza los emails (minúsculas, separados por ", ").
     info.email = (guardado && guardado.email) || info.email;
     info.paga_por = (guardado && guardado.paga_por) || "";
-    // El formulario no edita "sin cobro": se conserva lo que tenía.
-    info.sin_cobro = (CLIENTES[cuit] && CLIENTES[cuit].sin_cobro) || "";
+    info.sin_cobro = (guardado && guardado.sin_cobro) || "";
     aplicarClienteLocal(cuit, info);
     renderTablaClientesAdmin();
     e.target.reset();
@@ -864,7 +872,7 @@ function renderTablaClientesAdmin() {
     .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
     .map(
       ([cuit, info]) =>
-        `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}${info.paga_por ? `<div class="archivo">paga por ${esc((CLIENTES[info.paga_por] || {}).nombre || formatCuit(info.paga_por))}</div>` : ""}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`
+        `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}${info.paga_por ? `<div class="archivo">paga por ${esc((CLIENTES[info.paga_por] || {}).nombre || formatCuit(info.paga_por))}</div>` : ""}${info.sin_cobro ? `<div class="archivo">sin cobro · ${esc(info.sin_cobro)}</div>` : ""}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`
     );
   tbody.innerHTML = filas.join("") || `<tr><td colspan="4">Ningún cliente coincide con la búsqueda.</td></tr>`;
 }
@@ -883,6 +891,7 @@ document.getElementById("tbody-clientes-admin").addEventListener("click", (e) =>
   form.direccion.value = info.direccion || "";
   form.email.value = info.email || "";
   form.paga_por.value = info.paga_por || "";
+  form.sin_cobro.value = info.sin_cobro || "";
   form.email.focus();
   form.scrollIntoView({ behavior: "smooth", block: "center" });
 });
