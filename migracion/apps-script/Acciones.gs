@@ -15,7 +15,7 @@ var RETENCION_MAX = 0.12;
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
   // filas del límite de PostgREST - ver el comentario en Supabase.gs.
-  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro', 'cuit');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro,sin_cobro_hasta', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
     clientes[c.cuit] = {
@@ -26,6 +26,7 @@ function accObtenerDatos_(usuario) {
       email: c.email || '',
       paga_por: c.paga_por || '',
       sin_cobro: c.sin_cobro || '',
+      sin_cobro_hasta: c.sin_cobro_hasta || '',
     };
   });
 
@@ -613,6 +614,13 @@ function accUpsertCliente_(body, usuario) {
     const leyenda = String(body.sin_cobro || '').trim();
     if (leyenda.length > 60) throw new ApiError(400, 'La leyenda de "sin cobro" puede tener hasta 60 caracteres');
     fila.sin_cobro = leyenda || null;
+  }
+  // Hasta que fecha de emision no se cobra (inclusive). Vacio = para siempre.
+  // Sin leyenda no tiene sentido, asi que se borra junto con ella.
+  if (body.sin_cobro_hasta !== undefined) {
+    const hasta = String(body.sin_cobro_hasta || '').trim();
+    if (hasta && !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) throw new ApiError(400, '"Sin cobro hasta" tiene que ser una fecha');
+    fila.sin_cobro_hasta = hasta && fila.sin_cobro !== null ? hasta : null;
   }
   return sbUpsert('clientes', [fila], 'cuit')[0];
 }

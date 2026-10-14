@@ -66,14 +66,22 @@ function recomputar() {
 
     const pago = pagoPorFactura.get(f.numero) || null;
     const info = CLIENTES[f.cuit_cliente] || { nombre: "(cliente no encontrado en Clientes)" };
-    // Clientes a los que no se les cobra (ej. el edificio del dueño): todas
-    // sus facturas cuentan como pagas. Mismo criterio que ko.v_saldos_clientes.
-    const estado = pago || info.sin_cobro ? "pagada" : "pendiente";
+    // Clientes a los que no se les cobra (ej. el edificio del dueño), siempre
+    // o hasta una fecha: esas facturas cuentan como pagas. Mismo criterio que
+    // ko.factura_exenta en Supabase.
+    const exenta = esExenta(info, f.fecha_emision);
+    const estado = pago || exenta ? "pagada" : "pendiente";
 
     if (!porCliente.has(f.cuit_cliente)) {
-      porCliente.set(f.cuit_cliente, { cuit: f.cuit_cliente, nombre: info.nombre, sin_cobro: info.sin_cobro || "", facturas: [] });
+      porCliente.set(f.cuit_cliente, {
+        cuit: f.cuit_cliente,
+        nombre: info.nombre,
+        sin_cobro: info.sin_cobro || "",
+        sin_cobro_hasta: info.sin_cobro_hasta || "",
+        facturas: [],
+      });
     }
-    porCliente.get(f.cuit_cliente).facturas.push({ ...f, estado, pago });
+    porCliente.get(f.cuit_cliente).facturas.push({ ...f, estado, pago, exenta });
   }
 
   PENDIENTES_VALIDAR = [...porValidar.values()].sort((a, b) => b.total - a.total);
@@ -103,16 +111,27 @@ function recomputar() {
     // detalle factura por factura.
     //
     // OJO: esta fórmula está repetida en SQL, en ko.v_saldos_clientes
-    // (migracion/supabase/10_mailing.sql), que es de donde sale el saldo de
-    // los mails a clientes. Si se cambia acá, hay que cambiarla allá.
+    // (migracion/supabase/21_sin_cobro_hasta.sql), que es de donde sale el
+    // saldo de los mails a clientes. Si se cambia acá, hay que cambiarla allá.
+    //
+    // Las facturas de un período sin cobro se dan por saldadas y quedan fuera
+    // de la cuenta, igual que lo que entró al banco en ese período: si no, la
+    // primera factura nueva figuraría paga con plata vieja.
     const cobrado_banco = COBROS[c.cuit] || 0;
-    const total_cobrado = c.sin_cobro ? total_facturado : Math.max(total_imputado, Math.min(cobrado_banco, total_facturado));
+    const exento = c.facturas.filter((f) => f.exenta).reduce((s, f) => s + f.total, 0);
+    const facturado_normal = total_facturado - exento;
+    const imputado_normal = c.facturas.filter((f) => f.pago && !f.exenta).reduce((s, f) => s + f.total, 0);
+    const banco_normal = c.sin_cobro
+      ? COBROS_DETALLE.filter((k) => k.cuit_cliente === c.cuit && !esCobroDelPeriodoSinCobro(c, k.fecha)).reduce((s, k) => s + k.monto, 0)
+      : cobrado_banco;
+    const cobrado_normal = Math.max(imputado_normal, Math.min(banco_normal, facturado_normal));
+    const total_cobrado = exento + cobrado_normal;
 
     // Si pagó más de lo facturado en el período, el excedente cancela deuda
     // anterior a enero (que no está cargada). No baja el saldo del período ni
     // se cuenta como cobrado: se muestra aparte, para que se vea de dónde
     // sale la diferencia.
-    const a_cuenta = Math.max(0, cobrado_banco - total_facturado);
+    const a_cuenta = Math.max(0, banco_normal - facturado_normal);
 
     // Clientes que retienen impuestos: transfieren menos que el total de la
     // factura y depositan la diferencia a la AFIP por cuenta de KO. Conviene
@@ -301,7 +320,7 @@ function renderTabla() {
           <td class="num">${fmtMoney(c.total_pendiente)}${
             c.a_cuenta ? `<div class="archivo">+${fmtMoney(c.a_cuenta)} a cuenta de 2025</div>` : ""
           }</td>
-          <td><span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span>${c.sin_cobro ? `<div class="archivo">${escLeyenda(c.sin_cobro)}</div>` : ""}</td>
+          <td><span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}</span>${c.sin_cobro ? `<div class="archivo">${leyendaSinCobro(c)}</div>` : ""}</td>
         </tr>
       `;
     })
@@ -316,6 +335,34 @@ function renderTabla() {
   });
 
   actualizarFlechasOrden();
+}
+
+// --- sin cobro (siempre o hasta una fecha) ---
+// Mismo criterio que ko.factura_exenta / ko.v_saldos_clientes en Supabase.
+function fechaHasta(iso) {
+  if (!iso) return null;
+  const [a, m, d] = iso.split("-").map(Number);
+  return new Date(a, m - 1, d);
+}
+
+// Factura emitida dentro del período sin cobro del cliente.
+function esExenta(info, fechaEmision) {
+  if (!info.sin_cobro) return false;
+  const hasta = fechaHasta(info.sin_cobro_hasta);
+  return !hasta || parseFechaAr(fechaEmision) <= hasta;
+}
+
+// Cobro del banco entrado dentro del período sin cobro (fecha dd/mm/aa).
+function esCobroDelPeriodoSinCobro(info, fecha) {
+  if (!info.sin_cobro) return false;
+  const hasta = fechaHasta(info.sin_cobro_hasta);
+  return !hasta || parseFechaCorta(fecha) <= hasta;
+}
+
+function leyendaSinCobro(info) {
+  const hasta = fechaHasta(info.sin_cobro_hasta);
+  const tope = hasta ? ` (hasta ${String(hasta.getMonth() + 1).padStart(2, "0")}/${hasta.getFullYear()})` : "";
+  return escLeyenda(info.sin_cobro) + tope;
 }
 
 function escLeyenda(t) {
@@ -374,10 +421,13 @@ function renderModal() {
   const filas = movimientos.map((m) => {
     if (m.tipo === "factura") {
       // Sin cobro: cada factura se cancela sola, el saldo no crece.
-      if (cliente.sin_cobro) return { ...m, debe: m.factura.total, haber: m.factura.total, saldo };
+      if (m.factura.exenta) return { ...m, debe: m.factura.total, haber: m.factura.total, saldo };
       saldo += m.factura.total;
       return { ...m, debe: m.factura.total, haber: 0, saldo };
     }
+    // Lo que entró en un período sin cobro no baja el saldo: esas facturas
+    // ya se dieron por saldadas.
+    if (esCobroDelPeriodoSinCobro(cliente, m.cobro.fecha)) return { ...m, debe: 0, haber: m.cobro.monto, saldo };
     saldo -= m.cobro.monto;
     return { ...m, debe: 0, haber: m.cobro.monto, saldo };
   });
@@ -395,7 +445,7 @@ function renderModal() {
           cliente.retenido ? ` · retuvo ${fmtMoney(cliente.retenido)}` : ""
         }</div>
       </div>
-      <span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}${cliente.sin_cobro ? ` · ${escLeyenda(cliente.sin_cobro)}` : ""}</span>
+      <span class="badge ${alDia ? "ok" : "warn"}">${alDia ? "Al día" : "Pendiente"}${cliente.sin_cobro ? ` · ${leyendaSinCobro(cliente)}` : ""}</span>
     </div>
     <div class="timeline">
       ${filas
@@ -420,7 +470,7 @@ function renderModal() {
           const f = m.factura;
           const esNotaCredito = f.tipo === "NC" || f.total < 0;
           let pagoInfo = esNotaCredito ? "Nota de crédito" : "Sin imputar a un cobro puntual";
-          if (!f.pago && cliente.sin_cobro) pagoInfo = `No se cobra · ${escLeyenda(cliente.sin_cobro)}`;
+          if (!f.pago && f.exenta) pagoInfo = `No se cobra · ${escLeyenda(cliente.sin_cobro)}`;
           if (f.pago) {
             pagoInfo =
               f.pago.origen === "manual"

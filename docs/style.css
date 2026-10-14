@@ -484,3 +484,6 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   border-radius: 8px;
   background: #f3f5f7;
 }
+
+/* selector de fecha legible en el tema oscuro */
+.inline-form input[type="date"] { color-scheme: dark; }
