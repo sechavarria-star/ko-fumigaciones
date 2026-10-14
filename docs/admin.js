@@ -591,7 +591,7 @@ async function procesarArchivosExtracto(archivos) {
           c.confirmados.forEach(aplicarPagoLocal);
           confirmados = c.confirmados.length;
         }
-        hechas.push(`${file.name}: ${cobros.registrados} cobro(s) registrado(s), ${confirmados} imputado(s) a una factura${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`);
+        hechas.push(`${file.name}: ${cobros.registrados} cobro(s) registrado(s)${cobros.repetidos ? ` (${cobros.repetidos} ya estaban cargados)` : ""}, ${confirmados} imputado(s) a una factura${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`);
       } else {
         let agregadas = 0;
         exactos.forEach((m) => {
@@ -602,7 +602,7 @@ async function procesarArchivosExtracto(archivos) {
         const repetidas = exactos.length - agregadas;
         guardarColaEnStorage();
         hechas.push(
-          `${file.name}: ${cobros.registrados} cobro(s) registrado(s), ${agregadas} coincidencia(s) nueva(s) en la cola${repetidas ? ` (${repetidas} ya estaba(n))` : ""}${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`
+          `${file.name}: ${cobros.registrados} cobro(s) registrado(s)${cobros.repetidos ? ` (${cobros.repetidos} ya estaban cargados)` : ""}, ${agregadas} coincidencia(s) nueva(s) en la cola${repetidas ? ` (${repetidas} ya estaba(n))` : ""}${conRetencion ? `, ${conRetencion} con retención a revisar` : ""}`
         );
       }
 

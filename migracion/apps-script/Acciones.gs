@@ -466,26 +466,42 @@ function accRegistrarCobros_(body, usuario) {
   const texto = textoDelPdf_(body, 'extracto.pdf');
   const etiqueta = body.filename || '';
 
+  // Cuantos movimientos iguales (CUIT, importe, fecha) ya estan registrados,
+  // vengan del extracto que vengan.
+  //
+  // Antes el "ya lo tengo" dependia del nombre del archivo, y el 2026-10-14
+  // se resubieron febrero, marzo y junio con otro nombre: entraron 383 cobros
+  // repetidos (~$39 M) y bajaron los saldos de medio padron. Los extractos no
+  // se solapan, asi que un movimiento con el mismo CUIT, importe y fecha es
+  // el mismo movimiento. Si un dia hubo dos iguales, se cuentan.
+  const yaHay = {};
+  sbGetTodo('cobros', 'select=cuit_cliente,monto,fecha', 'id').forEach(function (c) {
+    const k = firmaMovimiento_(c.cuit_cliente, c.monto, c.fecha);
+    yaHay[k] = (yaHay[k] || 0) + 1;
+  });
+
   const vistos = {};
   const filas = [];
+  let repetidos = 0;
   movimientosDeCobro_(texto).forEach(function (mov) {
     mov.cuits.forEach(function (cuit) {
-      const base = etiqueta + '|' + firmaMovimiento_(cuit, mov.importe, mov.fecha);
-      const orden = (vistos[base] = (vistos[base] || 0) + 1);
+      const k = firmaMovimiento_(cuit, mov.importe, mov.fecha);
+      const orden = (vistos[k] = (vistos[k] || 0) + 1);
+      if (orden <= (yaHay[k] || 0)) { repetidos++; return; }
       filas.push({
         cuit_cliente: cuit,
         monto: mov.importe,
         fecha: mov.fecha,
         tipo_movimiento: mov.descripcion,
         extracto: etiqueta,
-        firma: base + '|' + orden,
+        firma: 'mov|' + k + '|' + orden,
         orden: orden,
         cuit_pagador: mov.pagadores[cuit] || null,
       });
     });
   });
 
-  if (!filas.length) return { registrados: 0, total: 0 };
+  if (!filas.length) return { registrados: 0, repetidos: repetidos, total: 0 };
 
   const TANDA = 200;
   for (let i = 0; i < filas.length; i += TANDA) {
@@ -493,6 +509,7 @@ function accRegistrarCobros_(body, usuario) {
   }
   return {
     registrados: filas.length,
+    repetidos: repetidos,
     total: filas.reduce(function (s, f) { return s + f.monto; }, 0),
   };
 }
