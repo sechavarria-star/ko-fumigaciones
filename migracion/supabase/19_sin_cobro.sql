@@ -15,9 +15,11 @@ alter table ko.clientes
 comment on column ko.clientes.sin_cobro is
   'Si tiene texto, al cliente no se le cobra (sus facturas cuentan como pagas) y el texto es la leyenda que se muestra. Null = cliente normal.';
 
+-- Solo si no tiene leyenda: despues se cambio a mano (la leyenda la define
+-- KO) y volver a correr este archivo no la tiene que pisar.
 update ko.clientes
 set sin_cobro = 'Comisión Chasman'
-where cuit = '30539727490';
+where cuit = '30539727490' and sin_cobro is null;
 
 -- Misma vista que en 10_mailing.sql; cambia solo que un cliente sin_cobro
 -- tiene todo cobrado (saldo 0), y se agrega la columna sin_cobro al final.
