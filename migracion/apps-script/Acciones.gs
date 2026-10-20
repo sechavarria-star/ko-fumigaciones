@@ -264,8 +264,16 @@ function matchearCobros_(movimientos) {
   //
   // Un movimiento que salvo varias facturas deja varios pagos con la MISMA
   // firma; se cuenta una sola vez, porque un movimiento es uno solo.
+  //
+  // Cuantos movimientos se usaron por firma sale de la PLATA imputada, no de
+  // contar pagos: un movimiento que salda varias facturas deja varios pagos
+  // que suman lo que entro (= 1 movimiento), y dos transferencias iguales el
+  // mismo dia dejan dos pagos de ese importe cada uno (= 2 movimientos).
+  // Antes se contaba "1 por firma" y, con dos transferencias iguales, la
+  // segunda se volvia a imputar a otra factura al reconciliar (2026-10-20:
+  // 7 pagos de mas).
   const usados = {};
-  const grupoContado = {};
+  const imputadoPorFirma = {};
   pagos.forEach(function (p) {
     let k = p.mov_firma;
     if (!k) {
@@ -274,9 +282,12 @@ function matchearCobros_(movimientos) {
       usados[k] = (usados[k] || 0) + 1;
       return;
     }
-    if (grupoContado[k]) return;
-    grupoContado[k] = true;
-    usados[k] = (usados[k] || 0) + 1;
+    imputadoPorFirma[k] = (imputadoPorFirma[k] || 0) + Number(p.monto);
+  });
+  Object.keys(imputadoPorFirma).forEach(function (k) {
+    const importe = Number(k.split('|')[1]);
+    const veces = importe > 0 ? Math.max(1, Math.round(imputadoPorFirma[k] / importe)) : 1;
+    usados[k] = (usados[k] || 0) + veces;
   });
 
   // las facturas pendientes de validar (sin CUIT) no tienen con que buscar
