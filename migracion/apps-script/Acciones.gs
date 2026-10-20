@@ -15,7 +15,7 @@ var RETENCION_MAX = 0.12;
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
   // filas del límite de PostgREST - ver el comentario en Supabase.gs.
-  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro,sin_cobro_hasta', 'cuit');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro,sin_cobro_hasta,retiene', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
     clientes[c.cuit] = {
@@ -27,6 +27,7 @@ function accObtenerDatos_(usuario) {
       paga_por: c.paga_por || '',
       sin_cobro: c.sin_cobro || '',
       sin_cobro_hasta: c.sin_cobro_hasta || '',
+      retiene: !!c.retiene,
     };
   });
 
@@ -236,7 +237,11 @@ function fechaOrdenable_(fecha) {
  */
 function matchearCobros_(movimientos) {
   const nombrePorCuit = {};
-  sbGetTodo('clientes', 'select=cuit,nombre', 'cuit').forEach(function (c) { nombrePorCuit[c.cuit] = c.nombre; });
+  const retiene = {};
+  sbGetTodo('clientes', 'select=cuit,nombre,retiene', 'cuit').forEach(function (c) {
+    nombrePorCuit[c.cuit] = c.nombre;
+    retiene[c.cuit] = !!c.retiene;
+  });
 
   const pagos = sbGetTodo('pagos', 'select=factura_numero,cuit_cliente,monto,fecha_aprox,mov_firma', 'id');
   const yaPagadas = {};
@@ -358,10 +363,14 @@ function matchearCobros_(movimientos) {
 
   // Pasada 3: cobros con retencion, sobre lo que quedo sin usar.
   // Nunca se confirman solos - van a una cola de revision en el frontend.
+  // Solo para clientes marcados como agentes de retencion (Clientes >
+  // "Retiene impuestos"): a los demas, un importe un poco menor que una
+  // factura suele ser otra cosa y llenaba la cola de coincidencias falsas.
   const aproximados = [];
   libres2.forEach(function (mov) {
     for (let c = 0; c < mov.cuits.length; c++) {
       const cuit = mov.cuits[c];
+      if (!retiene[cuit]) continue;
       const f = elegirFactura_(porCuit[cuit], tomadas, function (f) {
         const ret = f.total - mov.importe;
         return ret > 0 && ret <= f.total * RETENCION_MAX;
@@ -639,7 +648,132 @@ function accUpsertCliente_(body, usuario) {
     if (hasta && !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) throw new ApiError(400, '"Sin cobro hasta" tiene que ser una fecha');
     fila.sin_cobro_hasta = hasta && fila.sin_cobro !== null ? hasta : null;
   }
+  if (body.retiene !== undefined) fila.retiene = body.retiene === true;
   return sbUpsert('clientes', [fila], 'cuit')[0];
+}
+
+// --- listado de clientes de GestionPro (PDF "Clientes - MM-AAAA") ---
+
+// Mails que aparecen en el listado pero no son del cliente: la casilla de KO
+// y el Gmail del dueño, que en GestionPro se usan de relleno.
+var EMAILS_NO_CLIENTE = [/@kofumigacion\.com$/i, /^rodrigocamps@gmail\.com$/i];
+
+// Digito verificador de CUIT/CUIL. El listado trae CUITs de relleno
+// ("123456789", "20-12345678-9"): esos no se dan de alta.
+function cuitValido_(cuit) {
+  if (!/^\d{11}$/.test(cuit)) return false;
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  let suma = 0;
+  for (let i = 0; i < 10; i++) suma += Number(cuit[i]) * pesos[i];
+  let dv = 11 - (suma % 11);
+  if (dv === 11) dv = 0;
+  if (dv === 10) dv = 9;
+  return dv === Number(cuit[10]);
+}
+
+/**
+ * Lee el listado: una fila por cliente con "razon social  CUIT  mails".
+ *
+ * Los mails que el PDF corta (la columna tiene ancho fijo y el ultimo de una
+ * lista queda "proveedores@gui") no se toman: un mail completo tiene que
+ * terminar con un dominio y seguir de coma, espacio o fin de linea.
+ */
+function clientesDelListado_(texto) {
+  const CUIT = /\b(\d{2})-(\d{8})-(\d)\b/;
+  const EMAIL = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}/g;
+  const porCuit = {};
+  let sinCuit = 0;
+  let cuitInvalido = 0;
+  let descartados = 0;
+
+  texto.split('\n').forEach(function (linea) {
+    if (/^(C[oó]digo|Raz[oó]n Social)\b/i.test(linea.trim()) || /^TOTAL/i.test(linea.trim())) return;
+    const m = CUIT.exec(linea);
+    if (!m) {
+      if (EMAIL.test(linea)) sinCuit++;
+      EMAIL.lastIndex = 0;
+      return;
+    }
+    const cuit = m[1] + m[2] + m[3];
+    if (!cuitValido_(cuit)) { cuitInvalido++; return; }
+
+    const nombre = linea.slice(0, m.index).replace(/\s+/g, ' ').trim();
+    const resto = linea.slice(m.index + m[0].length);
+    const emails = [];
+    let e;
+    EMAIL.lastIndex = 0;
+    while ((e = EMAIL.exec(resto))) {
+      const sig = resto.charAt(e.index + e[0].length);
+      if (sig && !/[\s,;]/.test(sig)) continue; // cortado por el PDF
+      const mail = e[0].toLowerCase();
+      if (EMAILS_NO_CLIENTE.some(function (re) { return re.test(mail); })) { descartados++; continue; }
+      if (emails.indexOf(mail) === -1) emails.push(mail);
+    }
+
+    const c = porCuit[cuit] || (porCuit[cuit] = { cuit: cuit, nombre: nombre, emails: [] });
+    emails.forEach(function (x) { if (c.emails.indexOf(x) === -1) c.emails.push(x); });
+  });
+
+  return {
+    clientes: Object.keys(porCuit).map(function (k) { return porCuit[k]; }),
+    sin_cuit: sinCuit,
+    cuit_invalido: cuitInvalido,
+    mails_descartados: descartados,
+  };
+}
+
+function mailsDe_(texto) {
+  return String(texto || '').split(',').map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean);
+}
+
+/**
+ * Sube el listado mes a mes. Sin `aplicar` solo devuelve que cambiaria.
+ *
+ *   - CUIT nuevo: se da de alta con nombre y mails.
+ *   - CUIT existente: se le SUMAN los mails que falten. No se borra ningun
+ *     mail ni se cambia el nombre: los nombres y mails se corrigen a mano en
+ *     el panel (y el PDF corta los segundos mails).
+ */
+function accImportarClientes_(body, usuario) {
+  const texto = textoDelPdf_(body, 'clientes.pdf');
+  const r = clientesDelListado_(texto);
+  if (!r.clientes.length) {
+    throw new ApiError(400, 'No encontré clientes con CUIT en el archivo. ¿Es el listado de clientes de GestiónPro?');
+  }
+
+  const actuales = {};
+  sbGetTodo('clientes', 'select=cuit,nombre,email', 'cuit').forEach(function (c) { actuales[c.cuit] = c; });
+
+  const altas = [];
+  const mails = [];
+  let sinCambios = 0;
+  r.clientes.forEach(function (c) {
+    const a = actuales[c.cuit];
+    if (!a) {
+      altas.push({ cuit: c.cuit, nombre: c.nombre || '(sin nombre)', email: c.emails.join(', '), condicion_iva: '', direccion: '', provincia: '' });
+      return;
+    }
+    const tiene = mailsDe_(a.email);
+    const agregar = c.emails.filter(function (x) { return tiene.indexOf(x) === -1; });
+    if (!agregar.length) { sinCambios++; return; }
+    mails.push({ cuit: c.cuit, nombre: a.nombre, antes: a.email || '', despues: tiene.concat(agregar).join(', ') });
+  });
+
+  if (body.aplicar) {
+    if (altas.length) sbInsert('clientes', altas);
+    mails.forEach(function (m) { sbUpdate('clientes', 'cuit=eq.' + m.cuit, { email: m.despues }); });
+  }
+
+  return {
+    aplicado: !!body.aplicar,
+    leidos: r.clientes.length,
+    altas: altas.map(function (a) { return { cuit: a.cuit, nombre: a.nombre, email: a.email }; }),
+    mails: mails,
+    sin_cambios: sinCambios,
+    sin_cuit: r.sin_cuit,
+    cuit_invalido: r.cuit_invalido,
+    mails_descartados: r.mails_descartados,
+  };
 }
 
 // "Paga por": el CUIT del cliente por el que paga este (vacio = paga por si

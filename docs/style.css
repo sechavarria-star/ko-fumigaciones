@@ -487,3 +487,10 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 
 /* selector de fecha legible en el tema oscuro */
 .inline-form input[type="date"] { color-scheme: dark; }
+
+/* tilde dentro del formulario de clientes */
+.inline-form .chk-inline { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-dim); white-space: nowrap; }
+/* vista previa del listado de clientes */
+#clientes-import .draft-card { margin-bottom: 14px; }
+.import-lista { margin: 4px 0 10px; padding-left: 18px; font-size: 0.82rem; color: var(--text-dim); max-height: 220px; overflow: auto; }
+#dropzone-clientes { margin-bottom: 12px; }

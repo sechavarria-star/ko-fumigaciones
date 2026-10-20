@@ -834,6 +834,7 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     paga_por: fd.get("paga_por").replace(/\D/g, ""),
     sin_cobro: fd.get("sin_cobro").trim(),
     sin_cobro_hasta: fd.get("sin_cobro_hasta") || "",
+    retiene: fd.get("retiene") === "on",
   };
   // Vaciar "sin cobro" hace que el cliente vuelva a figurar como deudor de
   // todo lo facturado: que sea a propósito y no por cargar el CUIT a mano
@@ -850,6 +851,7 @@ document.getElementById("form-cliente").addEventListener("submit", async (e) => 
     info.paga_por = (guardado && guardado.paga_por) || "";
     info.sin_cobro = (guardado && guardado.sin_cobro) || "";
     info.sin_cobro_hasta = (guardado && guardado.sin_cobro_hasta) || "";
+    info.retiene = guardado ? !!guardado.retiene : info.retiene;
     aplicarClienteLocal(cuit, info);
     renderTablaClientesAdmin();
     e.target.reset();
@@ -874,7 +876,7 @@ function renderTablaClientesAdmin() {
     .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
     .map(
       ([cuit, info]) =>
-        `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}${info.paga_por ? `<div class="archivo">paga por ${esc((CLIENTES[info.paga_por] || {}).nombre || formatCuit(info.paga_por))}</div>` : ""}${info.sin_cobro ? `<div class="archivo">sin cobro · ${leyendaSinCobro(info)}</div>` : ""}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`
+        `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}${info.paga_por ? `<div class="archivo">paga por ${esc((CLIENTES[info.paga_por] || {}).nombre || formatCuit(info.paga_por))}</div>` : ""}${info.sin_cobro ? `<div class="archivo">sin cobro · ${leyendaSinCobro(info)}</div>` : ""}${info.retiene ? `<div class="archivo">retiene impuestos</div>` : ""}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`
     );
   tbody.innerHTML = filas.join("") || `<tr><td colspan="4">Ningún cliente coincide con la búsqueda.</td></tr>`;
 }
@@ -895,6 +897,7 @@ document.getElementById("tbody-clientes-admin").addEventListener("click", (e) =>
   form.paga_por.value = info.paga_por || "";
   form.sin_cobro.value = info.sin_cobro || "";
   form.sin_cobro_hasta.value = info.sin_cobro_hasta || "";
+  form.retiene.checked = !!info.retiene;
   form.email.focus();
   form.scrollIntoView({ behavior: "smooth", block: "center" });
 });
@@ -934,7 +937,7 @@ async function cargarMailing(templateId) {
     const vista = await llamarBackend("mailing_vista", {});
     MAILING.templates = vista.templates;
     const sel = document.getElementById("mailing-template");
-    sel.innerHTML = vista.templates.map((t) => `<option value="${esc(t.id)}">${esc(t.id)}</option>`).join("");
+    sel.innerHTML = vista.templates.map((t) => `<option value="${esc(t.id)}">${esc(t.descripcion || t.id)}</option>`).join("");
     if (!vista.templates.length) {
       cont.innerHTML = `<p class="hint">No hay templates activos en <code>ko.mailing_templates</code>.</p>`;
       return;
@@ -1139,6 +1142,69 @@ async function enviarMailing(e) {
   cargarMailing(MAILING.templateId);
 }
 
+// --- listado de clientes de GestiónPro ---
+// Dos pasos: primero el backend dice qué cambiaría (altas y mails nuevos) y
+// recién con "Aplicar" escribe. A los clientes que ya existen solo se les
+// suman mails: no se borra ninguno ni se cambia el nombre.
+document.getElementById("input-clientes").addEventListener("change", (e) => {
+  const archivo = e.target.files[0];
+  e.target.value = "";
+  if (archivo) previsualizarListadoClientes(archivo);
+});
+
+async function previsualizarListadoClientes(archivo) {
+  const cont = document.getElementById("clientes-import");
+  cont.innerHTML = `<div class="draft-card">Leyendo ${esc(archivo.name)}…</div>`;
+  let payload;
+  try {
+    payload = await payloadDePdf(archivo);
+    const r = await llamarBackend("importar_clientes", payload);
+    renderImportClientes(r, payload, archivo.name);
+  } catch (err) {
+    cont.innerHTML = "";
+    avisarError(err, "No se pudo leer el listado: ");
+  }
+}
+
+function renderImportClientes(r, payload, nombreArchivo) {
+  const cont = document.getElementById("clientes-import");
+  const hayCambios = r.altas.length || r.mails.length;
+  const lista = (items, fmt) =>
+    items.length ? `<ul class="import-lista">${items.slice(0, 40).map(fmt).join("")}${items.length > 40 ? `<li class="archivo">… y ${items.length - 40} más</li>` : ""}</ul>` : "";
+  cont.innerHTML = `
+    <div class="draft-card">
+      <div class="draft-row"><span class="k">Archivo</span><span>${esc(nombreArchivo)} · ${r.leidos} clientes leídos</span></div>
+      <div class="draft-row"><span class="k">Clientes nuevos</span><span>${r.altas.length}</span></div>
+      ${lista(r.altas, (a) => `<li>${formatCuit(a.cuit)} · ${esc(a.nombre)}${a.email ? ` · ${esc(a.email)}` : ' · <span class="archivo">sin mail</span>'}</li>`)}
+      <div class="draft-row"><span class="k">Mails a sumar</span><span>${r.mails.length} cliente${r.mails.length === 1 ? "" : "s"}</span></div>
+      ${lista(r.mails, (m) => `<li>${esc(m.nombre)}: ${esc(m.despues)}</li>`)}
+      <div class="draft-row"><span class="k">Sin cambios</span><span>${r.sin_cambios}</span></div>
+      ${r.sin_cuit || r.cuit_invalido ? `<div class="warn-text">${r.sin_cuit + r.cuit_invalido} fila(s) sin CUIT válido en el PDF: no se cargan.</div>` : ""}
+      ${r.mails_descartados ? `<div class="archivo">${r.mails_descartados} mail(s) de relleno descartados (casilla de KO / Gmail del dueño).</div>` : ""}
+      ${r.aplicado
+        ? `<div class="ok-text">Listo: se aplicaron los cambios.</div>`
+        : hayCambios
+          ? `<div class="lote-acciones"><button id="btn-aplicar-clientes">Aplicar cambios</button><button type="button" class="btn-confirmar-pago" id="btn-cancelar-clientes">Cancelar</button></div>`
+          : `<div class="ok-text">No hay nada para actualizar: el padrón ya está al día con este listado.</div>`}
+    </div>`;
+  document.getElementById("btn-cancelar-clientes")?.addEventListener("click", () => (cont.innerHTML = ""));
+  document.getElementById("btn-aplicar-clientes")?.addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    e.target.textContent = "Aplicando…";
+    try {
+      const r2 = await llamarBackend("importar_clientes", { ...payload, aplicar: true });
+      renderImportClientes(r2, payload, nombreArchivo);
+      await cargarDatosAutenticado();
+      renderTablaClientesAdmin();
+      mostrarAviso(`Padrón actualizado: ${r2.altas.length} cliente(s) nuevo(s), mails sumados a ${r2.mails.length}.`, "ok");
+    } catch (err) {
+      e.target.disabled = false;
+      e.target.textContent = "Aplicar cambios";
+      avisarError(err, "No se pudo aplicar: ");
+    }
+  });
+}
+
 // --- 5) usuarios (solo admin) ---
 let USUARIOS_CACHE = {};
 let busquedaUsuarios = "";
@@ -1219,5 +1285,6 @@ function wireDropzone(zoneId, onFiles) {
 }
 
 wireDropzone("dropzone-extracto", procesarArchivosExtracto);
+wireDropzone("dropzone-clientes", (archivos) => archivos[0] && previsualizarListadoClientes(archivos[0]));
 
 window.addEventListener("load", initGoogleSignIn);

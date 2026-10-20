@@ -146,6 +146,11 @@
     <div class="panel">
       <div class="panel-head"><h2>Clientes</h2></div>
       <div class="admin-body">
+        <label class="dropzone" id="dropzone-clientes" for="input-clientes">
+          <span>Actualizar desde el listado de clientes de GestiónPro (PDF): arrastralo acá o hacé clic. Primero ves qué cambia; no se guarda nada hasta que confirmes.</span>
+          <input type="file" id="input-clientes" accept="application/pdf" hidden>
+        </label>
+        <div id="clientes-import"></div>
         <form id="form-cliente" class="inline-form">
           <input name="cuit" placeholder="CUIT (11 dígitos)" maxlength="11" required>
           <input name="nombre" placeholder="Nombre / razón social" required>
@@ -155,6 +160,7 @@
           <input name="paga_por" placeholder="Paga por (CUIT del titular, opcional)" title="Si este CUIT paga por otro cliente (por ejemplo, la administración de un consorcio), el CUIT de ese cliente. Sus pagos se concilian contra las facturas del titular." maxlength="13">
           <input name="sin_cobro" placeholder="Sin cobro: leyenda (vacío = se cobra)" title="Si al cliente no se le cobra (por ejemplo, un edificio del dueño), escribí la leyenda que tiene que mostrar: sus facturas cuentan como pagas, también las que vengan, y no recibe mails de cobranza. Vacío = cliente normal." maxlength="60">
           <input name="sin_cobro_hasta" type="date" title="Sin cobro hasta: las facturas emitidas hasta esta fecha (inclusive) no se cobran; después, trato normal. Vacío = no se cobra nunca. Solo cuenta si hay leyenda de sin cobro." aria-label="Sin cobro hasta">
+          <label class="chk-inline" title="Agente de retención: transfiere menos que la factura. Solo a estos clientes se les buscan pagos con retención al conciliar."><input type="checkbox" name="retiene"> Retiene impuestos</label>
           <button type="submit">Guardar cliente</button>
         </form>
         <p class="hint">Para editar un cliente, hacé clic en su fila: se cargan sus datos en el formulario.</p>

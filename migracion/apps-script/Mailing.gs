@@ -30,7 +30,7 @@ var MAX_INTENTOS = 3;
 var MINUTOS_CARTERO_CAIDO = 5;
 
 function templatesActivos_() {
-  return sbGet('mailing_templates', 'select=id,descripcion,saldo_min,saldo_max,dias_entre_envios,asunto,cuerpo,datos_pago,firma&activo=is.true&order=id');
+  return sbGet('mailing_templates', 'select=id,descripcion,saldo_min,saldo_max,dias_entre_envios,asunto,cuerpo,datos_pago,firma&activo=is.true&order=saldo_max.asc.nullslast,saldo_min.desc');
 }
 
 function filasMailing_(templateId) {
@@ -109,8 +109,9 @@ function accMailingVista_(body, usuario) {
   const resultado = { templates: templates, cartero: carteroEstado_() };
   if (!body.template_id) return resultado;
 
-  const tid = encodeURIComponent(body.template_id);
-  const enEspera = cola_('select=cuit_cliente&tipo=eq.real&estado=in.(pendiente,tomado)&template_id=eq.' + tid);
+  // En cola por cualquier template: si ya esta esperando con "todos", no se
+  // lo vuelve a encolar con "menor a 300 mil".
+  const enEspera = cola_('select=cuit_cliente&tipo=eq.real&estado=in.(pendiente,tomado)');
   const esperando = {};
   enEspera.forEach(function (c) { esperando[c.cuit_cliente] = true; });
 

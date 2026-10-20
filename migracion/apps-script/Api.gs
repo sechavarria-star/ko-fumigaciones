@@ -101,6 +101,12 @@ function despachar_(action, body, usuario) {
       requerirPerfil_(usuario, ['admin', 'supervisor']);
       return accUpsertCliente_(body, usuario);
 
+    // Listado de clientes de GestionPro: vista previa o, con aplicar, altas
+    // y mails nuevos.
+    case 'importar_clientes':
+      requerirPerfil_(usuario, ['admin', 'supervisor']);
+      return accImportarClientes_(body, usuario);
+
     // Diagnóstico: devuelve el texto crudo que sacó el OCR del PDF que
     // mandó el que llama, sin tocar la base. Los regex de PdfParse.gs están
     // afinados contra el texto de pdfplumber, y el de Drive no sale igual -

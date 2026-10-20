@@ -82,7 +82,15 @@ facturas que lo componen, y lo manda desde **facturacion@kofumigacion.com**.
   antes de `dias_entre_envios` (30 por defecto). Todo lo enviado queda en
   `ko.mailing_envios`, con el saldo y el texto de ese día.
 - **Emails**: se cargan en la pestaña Clientes (clic en la fila para editar).
-  Varios separados por coma.
+  Varios separados por coma. O de una, subiendo el **listado de clientes de
+  GestiónPro** (PDF "Clientes - MM-AAAA") en esa misma pestaña: primero muestra
+  qué cambia y recién con "Aplicar" guarda. Da de alta los CUIT nuevos y a los
+  existentes solo les SUMA mails (no borra ni cambia nombres). Ignora CUITs
+  de relleno (dígito verificador), mails cortados por el PDF y la casilla de
+  KO / Gmail del dueño.
+- **Templates**: "menor a $300.000", "$300.000 o más" y "Todos". Un cliente no
+  recibe dos avisos dentro de `dias_entre_envios`, aunque entre en más de un
+  template.
 - **Permisos**: la vista previa la ve admin y supervisor; enviar, solo admin.
 - **Cuota de Gmail**: la de facturacion@ (Workspace: 1.500 destinatarios por
   día). El panel muestra cuánto queda.

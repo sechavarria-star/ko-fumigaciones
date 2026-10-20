@@ -78,6 +78,7 @@ function recomputar() {
         nombre: info.nombre,
         sin_cobro: info.sin_cobro || "",
         sin_cobro_hasta: info.sin_cobro_hasta || "",
+        retiene: !!info.retiene,
         facturas: [],
       });
     }
@@ -320,8 +321,8 @@ function renderTabla() {
       return `
         <tr data-cuit="${c.cuit}">
           <td class="nombre">${c.nombre}${
-            c.retenido
-              ? `<span class="marca-retencion" title="Retiene impuestos · ${fmtMoney(c.retenido)} retenidos">*</span>`
+            c.retenido || c.retiene
+              ? `<span class="marca-retencion" title="Retiene impuestos${c.retenido ? ` · ${fmtMoney(c.retenido)} retenidos` : ""}">*</span>`
               : ""
           }</td>
           <td class="cuit">${formatCuit(c.cuit)}</td>
@@ -345,7 +346,7 @@ function renderTabla() {
 
   // La referencia del asterisco solo si hay alguno a la vista: si no, es una
   // aclaración de algo que no se ve.
-  document.getElementById("referencia-retencion").hidden = !clientes.some((c) => c.retenido);
+  document.getElementById("referencia-retencion").hidden = !clientes.some((c) => c.retenido || c.retiene);
 
   tbody.querySelectorAll("tr").forEach((tr) => {
     tr.addEventListener("click", () => abrirModal(tr.dataset.cuit));
