@@ -30,6 +30,7 @@ async function cargarDatosAutenticado() {
   FACTURAS = datos.facturas;
   PAGOS = datos.pagos;
   COBROS_DETALLE = datos.cobros || [];
+  ALICUOTAS = datos.alicuotas || {};
   COBROS = {};
   COBROS_DETALLE.forEach((c) => {
     COBROS[c.cuit_cliente] = (COBROS[c.cuit_cliente] || 0) + c.monto;
@@ -126,7 +127,35 @@ function recomputar() {
     const banco_normal = c.sin_cobro
       ? COBROS_DETALLE.filter((k) => k.cuit_cliente === c.cuit && !esCobroDelPeriodoSinCobro(c, k.fecha)).reduce((s, k) => s + k.monto, 0)
       : cobrado_banco;
-    const cobrado_normal = Math.max(imputado_normal, Math.min(banco_normal, facturado_normal));
+    // Clientes con retenciones tildadas: la plata del banco que no está atada
+    // a una factura se reparte de la factura impaga más vieja a la más nueva,
+    // y cada una se cancela con lo que debería transferir (factura menos sus
+    // retenciones): cuenta entera en el haber. Lo imputado no cambia. Sin
+    // tipos tildados, la fórmula de siempre. Espejo de ko.v_saldos_clientes
+    // (26_alicuotas_retencion.sql).
+    const infoCliente = CLIENTES[c.cuit] || {};
+    let cobrado_normal;
+    let retencion_estimada = 0;
+    if (tieneRetenciones(infoCliente)) {
+      const pagado_normal = c.facturas.filter((f) => f.pago && !f.exenta).reduce((s, f) => s + (Number(f.pago.monto) || 0), 0);
+      const plata = Math.max(0, banco_normal - pagado_normal);
+      const impagas = c.facturas
+        .filter((f) => !f.pago && !f.exenta && f.total > 0)
+        .sort((a, b) => parseFechaAr(a.fecha_emision) - parseFechaAr(b.fecha_emision) || (a.numero < b.numero ? -1 : 1));
+      let antes = 0;
+      let cubierto = 0;
+      for (const f of impagas) {
+        const neto = f.total - retencionFactura(infoCliente, f.total);
+        if (antes + neto <= plata) cubierto += f.total;
+        else if (antes < plata) cubierto += ((plata - antes) * f.total) / neto;
+        antes += neto;
+      }
+      const sobrante = Math.max(0, plata - antes);
+      retencion_estimada = cubierto - Math.min(antes, plata);
+      cobrado_normal = Math.max(imputado_normal, Math.min(facturado_normal, imputado_normal + cubierto + sobrante));
+    } else {
+      cobrado_normal = Math.max(imputado_normal, Math.min(banco_normal, facturado_normal));
+    }
     const total_cobrado = exento + cobrado_normal;
 
     // Si pagó más de lo facturado en el período, el excedente cancela deuda
@@ -158,6 +187,7 @@ function recomputar() {
       a_cuenta,
       retenido,
       total_pagado: total_cobrado,
+      retencion_estimada,
       total_pendiente: total_facturado - total_cobrado,
     };
   });
@@ -357,6 +387,29 @@ function renderTabla() {
 }
 
 // --- tipos de retención ---
+// Cómo se calcula cada tipo (ko.alicuotas_retencion):
+// { ret_ganancias: { porcentaje, sobre_neto, minimo_no_imponible, minimo_retencion }, ... }
+let ALICUOTAS = {};
+
+function tieneRetenciones(info) {
+  return TIPOS_RETENCION.some(([k]) => info[k]);
+}
+
+// Retención esperada de una factura según los tipos tildados del cliente.
+// Misma cuenta que ko.retencion_factura en Supabase: por cada tipo, base =
+// total (o neto sin IVA), menos el mínimo no imponible, por el porcentaje;
+// si da menos que el mínimo de retención, no se retiene.
+function retencionFactura(info, total) {
+  if (!(total > 0)) return 0;
+  return TIPOS_RETENCION.reduce((suma, [k]) => {
+    const a = ALICUOTAS[k];
+    if (!info[k] || !a) return suma;
+    const base = a.sobre_neto ? total / 1.21 : total;
+    const r = Math.round(Math.max(0, base - a.minimo_no_imponible) * a.porcentaje) / 100;
+    return suma + (r >= a.minimo_retencion ? r : 0);
+  }, 0);
+}
+
 // Lo que tildan en Clientes. "retiene" (lo que mira la conciliación) lo
 // calcula el backend: true si tiene alguno. Los marcados antes de que
 // existieran los tipos quedan con retiene y ningún tipo.
@@ -467,6 +520,13 @@ function renderModal() {
     saldo -= m.cobro.monto;
     return { ...m, debe: 0, haber: m.cobro.monto, saldo };
   });
+  // Retenciones estimadas según los tipos tildados: van como un renglón
+  // aparte del haber, así se ve qué entró al banco y qué se acredita por
+  // retención.
+  if (cliente.retencion_estimada > 0.5) {
+    saldo -= cliente.retencion_estimada;
+    filas.push({ tipo: "retencion", haber: cliente.retencion_estimada, saldo });
+  }
 
   content.innerHTML = `
     <div class="modal-nav">
@@ -486,6 +546,20 @@ function renderModal() {
     <div class="timeline">
       ${filas
         .map((m) => {
+          if (m.tipo === "retencion") {
+            return `
+            <div class="timeline-item">
+              <div class="timeline-dot cobro"></div>
+              <div class="timeline-fecha">Retenciones</div>
+              <div class="detalle">Retenciones estimadas <span class="num-fact">· ${escLeyenda(textoRetenciones(CLIENTES[cliente.cuit] || {}))}</span></div>
+              <div class="timeline-cuenta">
+                <div><span class="k">Debe</span>—</div>
+                <div><span class="k">Haber</span>${fmtMoney(m.haber)}</div>
+                <div><span class="k">Saldo</span>${fmtMoney(m.saldo)}</div>
+              </div>
+              <div class="pago-info ok-text">Lo que el cliente depositó al fisco por cuenta de KO, según los tipos tildados</div>
+            </div>`;
+          }
           // Un cobro del banco: puede o no estar imputado a una factura.
           if (m.tipo === "cobro") {
             const c = m.cobro;
@@ -496,7 +570,7 @@ function renderModal() {
               <div class="detalle">${c.tipo_movimiento || "Cobro"} <span class="num-fact">· ${c.extracto || ""}</span></div>
               <div class="timeline-cuenta">
                 <div><span class="k">Debe</span>—</div>
-                <div><span class="k">Haber</span>${fmtMoney(c.monto)}</div>
+                <div><span class="k">Haber</span>${fmtMoney(m.haber)}</div>
                 <div><span class="k">Saldo</span>${fmtMoney(m.saldo)}</div>
               </div>
               <div class="pago-info ok-text">Entró al banco</div>

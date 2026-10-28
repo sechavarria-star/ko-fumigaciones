@@ -65,7 +65,7 @@ function accObtenerDatos_(usuario) {
       };
     });
 
-  return { clientes: clientes, facturas: facturas, pagos: pagos, cobros: cobros, yo: usuario };
+  return { clientes: clientes, facturas: facturas, pagos: pagos, cobros: cobros, alicuotas: alicuotasRetencion_(), yo: usuario };
 }
 
 // --- 1) confirmar pago manual ---
@@ -242,9 +242,12 @@ function fechaOrdenable_(fecha) {
 function matchearCobros_(movimientos) {
   const nombrePorCuit = {};
   const retiene = {};
-  sbGetTodo('clientes', 'select=cuit,nombre,retiene', 'cuit').forEach(function (c) {
+  const tiposCliente = {};
+  const alicuotas = alicuotasRetencion_();
+  sbGetTodo('clientes', 'select=cuit,nombre,retiene,ret_iva,ret_iibb_arba,ret_iibb_agip,ret_ganancias', 'cuit').forEach(function (c) {
     nombrePorCuit[c.cuit] = c.nombre;
     retiene[c.cuit] = !!c.retiene;
+    tiposCliente[c.cuit] = c;
   });
 
   const pagos = sbGetTodo('pagos', 'select=factura_numero,cuit_cliente,monto,fecha_aprox,mov_firma', 'id');
@@ -386,9 +389,14 @@ function matchearCobros_(movimientos) {
     for (let c = 0; c < mov.cuits.length; c++) {
       const cuit = mov.cuits[c];
       if (!retiene[cuit]) continue;
+      // Con tipos tildados se sabe cuanto deberia retener cada factura (ej.
+      // IVA + AGIP = 17,38%): el margen se estira hasta ahi, que si no
+      // pasaria el 12%.
       const f = elegirFactura_(porCuit[cuit], tomadas, function (f) {
         const ret = f.total - mov.importe;
-        return ret > 0 && ret <= f.total * RETENCION_MAX;
+        const esperada = retencionFactura_(tiposCliente[cuit], f.total, alicuotas);
+        const maximo = Math.max(RETENCION_MAX, esperada / f.total + 0.02);
+        return ret > 0 && ret <= f.total * maximo;
       });
       if (!f) continue;
       tomadas[f.numero] = true;
@@ -401,6 +409,10 @@ function matchearCobros_(movimientos) {
         monto_factura: f.total,
         retencion: retencion,
         porcentaje: Math.round((retencion / f.total) * 10000) / 100,
+        // Lo que tendria que haber entrado segun los tipos tildados del
+        // cliente, para comparar en la revision. Null si no tiene tipos.
+        esperado: esperadoRetencion_(tiposCliente[cuit], f.total, alicuotas),
+        porcentaje_esperado: porcentajeEsperado_(tiposCliente[cuit], f.total, alicuotas),
         tipo_movimiento: mov.descripcion,
         fecha_aprox: mov.fecha,
         extracto_label: mov.extracto || null,
@@ -578,6 +590,52 @@ function firmaMovimiento_(cuit, importe, fecha) {
 
 function esCobro_(descripcion) {
   return MOVIMIENTO_KEYWORDS.some(function (k) { return descripcion.indexOf(k) !== -1; });
+}
+
+// Como se calcula cada tipo de retencion (ko.alicuotas_retencion):
+// { ret_ganancias: { porcentaje, sobre_neto, minimo_no_imponible, minimo_retencion }, ... }
+function alicuotasRetencion_() {
+  const a = {};
+  sbGet('alicuotas_retencion', 'select=tipo,porcentaje,sobre_neto,minimo_no_imponible,minimo_retencion').forEach(function (x) {
+    a[x.tipo] = {
+      porcentaje: Number(x.porcentaje),
+      sobre_neto: !!x.sobre_neto,
+      minimo_no_imponible: Number(x.minimo_no_imponible),
+      minimo_retencion: Number(x.minimo_retencion),
+    };
+  });
+  return a;
+}
+
+// Retencion esperada de una factura segun los tipos tildados del cliente.
+// Misma cuenta que ko.retencion_factura en Supabase y retencionFactura() del
+// panel.
+function retencionFactura_(c, total, alicuotas) {
+  if (!c || !(total > 0)) return 0;
+  let suma = 0;
+  ['ret_iva', 'ret_iibb_arba', 'ret_iibb_agip', 'ret_ganancias'].forEach(function (t) {
+    const a = alicuotas[t];
+    if (!c[t] || !a) return;
+    const base = a.sobre_neto ? total / 1.21 : total;
+    const r = Math.round(Math.max(0, base - a.minimo_no_imponible) * a.porcentaje) / 100;
+    if (r >= a.minimo_retencion) suma += r;
+  });
+  return suma;
+}
+
+function tieneTipos_(c) {
+  return !!c && (c.ret_iva || c.ret_iibb_arba || c.ret_iibb_agip || c.ret_ganancias);
+}
+
+// Lo que deberia transferir el cliente por esta factura. Null sin tipos.
+function esperadoRetencion_(c, total, alicuotas) {
+  if (!tieneTipos_(c)) return null;
+  return Math.round((total - retencionFactura_(c, total, alicuotas)) * 100) / 100;
+}
+
+function porcentajeEsperado_(c, total, alicuotas) {
+  if (!tieneTipos_(c) || !(total > 0)) return null;
+  return Math.round((retencionFactura_(c, total, alicuotas) / total) * 10000) / 100;
 }
 
 function elegirFactura_(facturas, tomadas, cumple) {

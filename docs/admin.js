@@ -435,8 +435,8 @@ function renderColaRetenciones() {
       <td><input type="checkbox" data-idx="${i}" class="chk-retencion" aria-label="Confirmar ${m.factura_numero}"></td>
       <td>${m.nombre_cliente}<div class="archivo">FC ${m.factura_numero}</div></td>
       <td class="num">${fmtMoney(m.monto_factura)}</td>
-      <td class="num">${fmtMoney(m.monto)}</td>
-      <td class="num warn-text">${fmtMoney(m.retencion)} <span class="archivo">(${m.porcentaje}%)</span></td>
+      <td class="num">${fmtMoney(m.monto)}${m.esperado ? `<div class="archivo">esperado ${fmtMoney(m.esperado)}</div>` : ""}</td>
+      <td class="num warn-text">${fmtMoney(m.retencion)} <span class="archivo">(${m.porcentaje}%)</span>${m.porcentaje_esperado ? `<div class="archivo">según tipos: ${m.porcentaje_esperado}%</div>` : ""}</td>
       <td>${m.fecha_aprox || "—"}</td>
       <td class="archivo">${m.extracto_label}</td>
     </tr>`

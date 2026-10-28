@@ -95,6 +95,24 @@ facturas que lo componen, y lo manda desde **facturacion@kofumigacion.com**.
 - **Cuota de Gmail**: la de facturacion@ (Workspace: 1.500 destinatarios por
   día). El panel muestra cuánto queda.
 
+## Retenciones
+
+En Clientes (pop-up de cada cliente) se tilda qué retiene: IVA, IIBB ARBA,
+IIBB AGIP y/o Ganancias. Cómo se calcula cada uno está en la tabla
+`ko.alicuotas_retencion` (porcentaje sobre el total o sobre el neto sin IVA,
+mínimo no imponible y mínimo de retención); se edita ahí si cambian.
+
+- **Saldo**: a un cliente con tipos tildados, la plata del banco que no está
+  atada a una factura se reparte de la factura impaga más vieja a la más
+  nueva, y cada una se cancela con lo que debería transferir (factura menos
+  sus retenciones). En el detalle del cliente sale un renglón "Retenciones
+  estimadas" en el haber. Lo ya imputado no cambia.
+- **Conciliación**: a esos clientes se les buscan pagos con retención con el
+  margen que corresponde a sus tipos (con IVA puede pasar el 12% general), y
+  en "Pagos con retención — revisar" se ve el importe esperado al lado.
+- Sin ningún tipo tildado, un cliente no tiene búsqueda de pagos con
+  retención.
+
 ## Configuración (por si hay que recrearla)
 
 **Script Properties** (editor de Apps Script > Project Settings):
