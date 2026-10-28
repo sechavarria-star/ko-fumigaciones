@@ -519,3 +519,13 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   font-size: 0.85rem; font-weight: 600; cursor: pointer;
 }
 .form-cliente .warn-text { color: var(--warn); }
+
+/* Tablero: que la tabla de clientes entre sin scroll horizontal. Los
+   importes no se parten, pero la aclaración chica de abajo ("sin imputar",
+   "a cuenta de 2025") sí, y el nombre tiene un ancho mínimo para no quedar
+   cortado. */
+@media (min-width: 1200px) { .wrap { max-width: 1240px; } }
+#tabla-clientes th, #tabla-clientes td { padding-left: 12px; padding-right: 12px; }
+#tabla-clientes td.nombre { min-width: 200px; }
+#tabla-clientes td .archivo { white-space: normal; font-size: 0.74rem; line-height: 1.3; max-width: 170px; margin-left: auto; }
+#tabla-clientes td:first-child .archivo { margin-left: 0; max-width: none; }
