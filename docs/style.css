@@ -494,3 +494,28 @@ td.cuit { color: var(--text-dim); font-variant-numeric: tabular-nums; }
 #clientes-import .draft-card { margin-bottom: 14px; }
 .import-lista { margin: 4px 0 10px; padding-left: 18px; font-size: 0.82rem; color: var(--text-dim); max-height: 220px; overflow: auto; }
 #dropzone-clientes { margin-bottom: 12px; }
+
+/* pop-up de cliente */
+.modal-cliente { max-width: 640px; }
+.form-cliente { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin-top: 12px; }
+.form-cliente .ancho { grid-column: 1 / -1; }
+.form-cliente label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--text-dim); }
+.form-cliente input:not([type="checkbox"]) {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 8px 10px; font-size: 0.9rem;
+}
+.form-cliente input[readonly] { opacity: 0.6; }
+.form-cliente input[type="date"] { color-scheme: dark; }
+.form-cliente fieldset { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.form-cliente fieldset legend { padding: 0 6px; font-size: 0.8rem; color: var(--text-dim); }
+.form-cliente fieldset .hint, .form-cliente fieldset .warn-text { grid-column: 1 / -1; margin: 2px 0 4px; font-size: 0.78rem; }
+.form-cliente label.chk { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 0.88rem; }
+.form-cliente button { padding: 8px 16px; }
+@media (max-width: 560px) {
+  .form-cliente, .form-cliente fieldset { grid-template-columns: 1fr; }
+}
+.form-cliente button[type="submit"] {
+  background: var(--brand); color: var(--bg); border: none; border-radius: 6px;
+  font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.form-cliente .warn-text { color: var(--warn); }

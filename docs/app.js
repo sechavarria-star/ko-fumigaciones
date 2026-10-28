@@ -79,6 +79,7 @@ function recomputar() {
         sin_cobro: info.sin_cobro || "",
         sin_cobro_hasta: info.sin_cobro_hasta || "",
         retiene: !!info.retiene,
+        retenciones: textoRetenciones(info),
         facturas: [],
       });
     }
@@ -322,7 +323,7 @@ function renderTabla() {
         <tr data-cuit="${c.cuit}">
           <td class="nombre">${c.nombre}${
             c.retenido || c.retiene
-              ? `<span class="marca-retencion" title="Retiene impuestos${c.retenido ? ` · ${fmtMoney(c.retenido)} retenidos` : ""}">*</span>`
+              ? `<span class="marca-retencion" title="Retiene ${escLeyenda(c.retenciones || "impuestos")}${c.retenido ? ` · ${fmtMoney(c.retenido)} retenidos` : ""}">*</span>`
               : ""
           }</td>
           <td class="cuit">${formatCuit(c.cuit)}</td>
@@ -353,6 +354,23 @@ function renderTabla() {
   });
 
   actualizarFlechasOrden();
+}
+
+// --- tipos de retención ---
+// Lo que tildan en Clientes. "retiene" (lo que mira la conciliación) lo
+// calcula el backend: true si tiene alguno. Los marcados antes de que
+// existieran los tipos quedan con retiene y ningún tipo.
+const TIPOS_RETENCION = [
+  ["ret_iva", "IVA"],
+  ["ret_iibb_arba", "IIBB ARBA"],
+  ["ret_iibb_agip", "IIBB AGIP"],
+  ["ret_ganancias", "Ganancias"],
+];
+
+function textoRetenciones(info) {
+  const tipos = TIPOS_RETENCION.filter(([k]) => info[k]).map(([, nombre]) => nombre);
+  if (tipos.length) return tipos.join(" · ");
+  return info.retiene ? "tipo sin especificar" : "";
 }
 
 // --- sin cobro (siempre o hasta una fecha) ---

@@ -15,7 +15,7 @@ var RETENCION_MAX = 0.12;
 function accObtenerDatos_(usuario) {
   // sbGetTodo (no sbGet): las tres tablas superan o pueden superar las 1000
   // filas del límite de PostgREST - ver el comentario en Supabase.gs.
-  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro,sin_cobro_hasta,retiene', 'cuit');
+  const clientesFilas = sbGetTodo('clientes', 'select=cuit,nombre,condicion_iva,direccion,provincia,email,paga_por,sin_cobro,sin_cobro_hasta,retiene,ret_iva,ret_iibb_arba,ret_iibb_agip,ret_ganancias', 'cuit');
   const clientes = {};
   clientesFilas.forEach(function (c) {
     clientes[c.cuit] = {
@@ -28,6 +28,10 @@ function accObtenerDatos_(usuario) {
       sin_cobro: c.sin_cobro || '',
       sin_cobro_hasta: c.sin_cobro_hasta || '',
       retiene: !!c.retiene,
+      ret_iva: !!c.ret_iva,
+      ret_iibb_arba: !!c.ret_iibb_arba,
+      ret_iibb_agip: !!c.ret_iibb_agip,
+      ret_ganancias: !!c.ret_ganancias,
     };
   });
 
@@ -660,6 +664,13 @@ function accUpsertCliente_(body, usuario) {
     fila.sin_cobro_hasta = hasta && fila.sin_cobro !== null ? hasta : null;
   }
   if (body.retiene !== undefined) fila.retiene = body.retiene === true;
+  // Tipos de retencion. Si vienen, "retiene" (lo que mira la conciliacion)
+  // se calcula de ellos: true si tiene al menos uno.
+  const TIPOS_RETENCION = ['ret_iva', 'ret_iibb_arba', 'ret_iibb_agip', 'ret_ganancias'];
+  if (TIPOS_RETENCION.some(function (t) { return body[t] !== undefined; })) {
+    TIPOS_RETENCION.forEach(function (t) { fila[t] = body[t] === true; });
+    fila.retiene = TIPOS_RETENCION.some(function (t) { return fila[t]; });
+  }
   return sbUpsert('clientes', [fila], 'cuit')[0];
 }
 

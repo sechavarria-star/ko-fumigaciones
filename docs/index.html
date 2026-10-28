@@ -151,19 +151,10 @@
           <input type="file" id="input-clientes" accept="application/pdf" hidden>
         </label>
         <div id="clientes-import"></div>
-        <form id="form-cliente" class="inline-form">
-          <input name="cuit" placeholder="CUIT (11 dígitos)" maxlength="11" required>
-          <input name="nombre" placeholder="Nombre / razón social" required>
-          <input name="condicion_iva" placeholder="Condición IVA">
-          <input name="direccion" placeholder="Dirección">
-          <input name="email" placeholder="Email (varios separados por coma)">
-          <input name="paga_por" placeholder="Paga por (CUIT del titular, opcional)" title="Si este CUIT paga por otro cliente (por ejemplo, la administración de un consorcio), el CUIT de ese cliente. Sus pagos se concilian contra las facturas del titular." maxlength="13">
-          <input name="sin_cobro" placeholder="Sin cobro: leyenda (vacío = se cobra)" title="Si al cliente no se le cobra (por ejemplo, un edificio del dueño), escribí la leyenda que tiene que mostrar: sus facturas cuentan como pagas, también las que vengan, y no recibe mails de cobranza. Vacío = cliente normal." maxlength="60">
-          <input name="sin_cobro_hasta" type="date" title="Sin cobro hasta: las facturas emitidas hasta esta fecha (inclusive) no se cobran; después, trato normal. Vacío = no se cobra nunca. Solo cuenta si hay leyenda de sin cobro." aria-label="Sin cobro hasta">
-          <label class="chk-inline" title="Agente de retención: transfiere menos que la factura. Solo a estos clientes se les buscan pagos con retención al conciliar."><input type="checkbox" name="retiene"> Retiene impuestos</label>
-          <button type="submit">Guardar cliente</button>
-        </form>
-        <p class="hint">Para editar un cliente, hacé clic en su fila: se cargan sus datos en el formulario.</p>
+        <div class="lote-acciones lote-acciones-top">
+          <button type="button" id="btn-nuevo-cliente">+ Nuevo cliente</button>
+          <span class="resumen-txt">Para ver o editar un cliente, hacé clic en su fila.</span>
+        </div>
         <input type="search" id="buscar-clientes-admin" class="buscador" placeholder="Buscar por CUIT o nombre…">
         <div class="table-wrap">
           <table id="tabla-clientes-admin">
@@ -236,6 +227,41 @@
         <input name="fecha_ingreso" type="date" required>
       </label>
       <button type="submit">Confirmar pago</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-cliente-backdrop">
+  <div class="modal modal-cliente">
+    <button class="modal-close" id="modal-cliente-close" aria-label="Cerrar">&times;</button>
+    <h3 id="modal-cliente-titulo">Cliente</h3>
+    <p class="hint" id="modal-cliente-sub"></p>
+    <form id="form-cliente" class="form-cliente">
+      <label>CUIT <input name="cuit" placeholder="11 dígitos" maxlength="13" required></label>
+      <label class="ancho">Nombre / razón social <input name="nombre" required></label>
+      <label>Condición IVA <input name="condicion_iva"></label>
+      <label>Provincia <input name="provincia"></label>
+      <label class="ancho">Dirección <input name="direccion"></label>
+      <label class="ancho">Email(s) <input name="email" placeholder="varios separados por coma"></label>
+
+      <fieldset class="ancho">
+        <legend>Retenciones que hace el cliente</legend>
+        <label class="chk"><input type="checkbox" name="ret_iva"> Retención de IVA</label>
+        <label class="chk"><input type="checkbox" name="ret_iibb_arba"> Retención IIBB (ARBA)</label>
+        <label class="chk"><input type="checkbox" name="ret_iibb_agip"> Retención IIBB (AGIP)</label>
+        <label class="chk"><input type="checkbox" name="ret_ganancias"> Retención de Ganancias</label>
+        <p class="hint">Si tiene alguna, al conciliar extractos se le buscan pagos con retención (entra menos que la factura).</p>
+        <p class="warn-text" id="aviso-retencion-sin-tipo" hidden>Figura como agente de retención pero sin el tipo: tildá cuál o cuáles.</p>
+      </fieldset>
+
+      <label class="ancho" title="Si este CUIT paga por otro cliente (por ejemplo, la administración de un consorcio), el CUIT de ese cliente. Sus pagos se concilian contra las facturas del titular.">Paga por (CUIT del titular, opcional) <input name="paga_por" maxlength="13"></label>
+      <label title="Si al cliente no se le cobra (por ejemplo, un edificio del dueño): la leyenda que se muestra. Sus facturas cuentan como pagas y no recibe mails de cobranza. Vacío = cliente normal.">Sin cobro: leyenda <input name="sin_cobro" maxlength="60" placeholder="vacío = se cobra"></label>
+      <label title="Las facturas emitidas hasta esta fecha (inclusive) no se cobran; después, trato normal. Vacío = no se cobra nunca.">Sin cobro hasta <input name="sin_cobro_hasta" type="date"></label>
+
+      <div class="lote-acciones ancho">
+        <button type="submit">Guardar</button>
+        <button type="button" class="btn-confirmar-pago" id="btn-cliente-cancelar">Cancelar</button>
+      </div>
     </form>
   </div>
 </div>

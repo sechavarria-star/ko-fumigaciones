@@ -815,46 +815,116 @@ function renderColaConsolidacion() {
 }
 
 // --- 4) clientes ---
+// Alta y edición en un pop-up: clic en la fila (editar) o "+ Nuevo cliente".
+
+// Lo que el backend devuelve al guardar es la fila entera de ko.clientes:
+// se pasa al mismo formato que arma obtener_datos.
+function clienteDesdeFila(g) {
+  const c = {
+    nombre: g.nombre || "",
+    condicion_iva: g.condicion_iva || "",
+    direccion: g.direccion || "",
+    provincia: g.provincia || "",
+    email: g.email || "",
+    paga_por: g.paga_por || "",
+    sin_cobro: g.sin_cobro || "",
+    sin_cobro_hasta: g.sin_cobro_hasta || "",
+    retiene: !!g.retiene,
+  };
+  TIPOS_RETENCION.forEach(([k]) => (c[k] = !!g[k]));
+  return c;
+}
+
+function abrirModalCliente(cuit) {
+  const form = document.getElementById("form-cliente");
+  const info = (cuit && CLIENTES[cuit]) || {};
+  form.reset();
+  form.dataset.editando = cuit || "";
+  form.cuit.value = cuit || "";
+  form.cuit.readOnly = !!cuit;
+  form.nombre.value = info.nombre || "";
+  form.condicion_iva.value = info.condicion_iva || "";
+  form.provincia.value = info.provincia || "";
+  form.direccion.value = info.direccion || "";
+  form.email.value = info.email || "";
+  form.paga_por.value = info.paga_por || "";
+  form.sin_cobro.value = info.sin_cobro || "";
+  form.sin_cobro_hasta.value = info.sin_cobro_hasta || "";
+  TIPOS_RETENCION.forEach(([k]) => (form[k].checked = !!info[k]));
+  document.getElementById("aviso-retencion-sin-tipo").hidden = !(info.retiene && !TIPOS_RETENCION.some(([k]) => info[k]));
+  document.getElementById("modal-cliente-titulo").textContent = cuit ? info.nombre || "Cliente" : "Nuevo cliente";
+  document.getElementById("modal-cliente-sub").textContent = cuit ? "" : "Completá al menos CUIT y nombre.";
+  document.getElementById("modal-cliente-backdrop").classList.add("open");
+  (cuit ? form.nombre : form.cuit).focus();
+}
+
+function cerrarModalCliente() {
+  document.getElementById("modal-cliente-backdrop").classList.remove("open");
+}
+
+document.getElementById("btn-nuevo-cliente").addEventListener("click", () => abrirModalCliente(null));
+document.getElementById("modal-cliente-close").addEventListener("click", cerrarModalCliente);
+document.getElementById("btn-cliente-cancelar").addEventListener("click", cerrarModalCliente);
+document.getElementById("modal-cliente-backdrop").addEventListener("click", (e) => {
+  if (e.target.id === "modal-cliente-backdrop") cerrarModalCliente();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("modal-cliente-backdrop").classList.contains("open")) cerrarModalCliente();
+});
+
 document.getElementById("form-cliente").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const fd = new FormData(e.target);
-  const cuit = fd.get("cuit").trim();
+  const form = e.target;
+  const fd = new FormData(form);
+  const editando = form.dataset.editando;
+  const cuit = editando || fd.get("cuit").replace(/\D/g, "");
   if (!/^\d{11}$/.test(cuit)) {
-    mostrarAviso("El CUIT tiene que tener 11 dígitos, sin guiones.", "error");
+    mostrarAviso("El CUIT tiene que tener 11 dígitos.", "error");
     return;
   }
-  const info = {
+  if (!editando && CLIENTES[cuit]) {
+    mostrarAviso(`Ya existe un cliente con ese CUIT (${esc(CLIENTES[cuit].nombre)}). Abrí su fila para editarlo.`, "error");
+    return;
+  }
+  const antes = CLIENTES[cuit] || {};
+  const datos = {
     nombre: fd.get("nombre").trim(),
     condicion_iva: fd.get("condicion_iva").trim(),
     direccion: fd.get("direccion").trim(),
-    // El form no tiene provincia: se conserva la que ya tenía, en vez de
-    // pisarla con vacío cada vez que se edita el cliente.
-    provincia: (CLIENTES[cuit] && CLIENTES[cuit].provincia) || "",
+    provincia: fd.get("provincia").trim(),
     email: fd.get("email").trim(),
     paga_por: fd.get("paga_por").replace(/\D/g, ""),
     sin_cobro: fd.get("sin_cobro").trim(),
     sin_cobro_hasta: fd.get("sin_cobro_hasta") || "",
-    retiene: fd.get("retiene") === "on",
   };
+  const tipos = {};
+  TIPOS_RETENCION.forEach(([k]) => (tipos[k] = fd.get(k) === "on"));
+  const algunTipo = Object.values(tipos).some(Boolean);
+
   // Vaciar "sin cobro" hace que el cliente vuelva a figurar como deudor de
-  // todo lo facturado: que sea a propósito y no por cargar el CUIT a mano
-  // sin abrir la fila.
-  const sinCobroAntes = CLIENTES[cuit] && CLIENTES[cuit].sin_cobro;
-  if (sinCobroAntes && !info.sin_cobro &&
-      !confirm(`Este cliente figura como sin cobro ("${sinCobroAntes}"). Si guardás con ese campo vacío, vuelve a cobrarse normal y su saldo pasa a figurar como deuda. ¿Seguir?`)) {
+  // todo lo facturado: que sea a propósito.
+  if (antes.sin_cobro && !datos.sin_cobro &&
+      !confirm(`Este cliente figura como sin cobro ("${antes.sin_cobro}"). Si guardás con ese campo vacío, vuelve a cobrarse normal y su saldo pasa a figurar como deuda. ¿Seguir?`)) {
     return;
   }
+
+  // Sacarle todas las retenciones hace que al conciliar ya no se le busquen
+  // pagos con retención. Si estaba marcado de antes sin tipo, cancelar deja
+  // la marca como estaba y guarda el resto.
+  let mandarTipos = true;
+  if (antes.retiene && !algunTipo) {
+    mandarTipos = confirm(
+      "Este cliente figura como agente de retención. Si guardás sin tildar ningún tipo, al conciliar ya no se le van a buscar pagos con retención.\n\n" +
+        "Aceptar: sacarle la retención.\nCancelar: dejarlo como agente de retención y guardar el resto."
+    );
+  }
+
   try {
-    const guardado = await llamarBackend("upsert_cliente", { cuit, ...info });
-    // El backend normaliza los emails (minúsculas, separados por ", ").
-    info.email = (guardado && guardado.email) || info.email;
-    info.paga_por = (guardado && guardado.paga_por) || "";
-    info.sin_cobro = (guardado && guardado.sin_cobro) || "";
-    info.sin_cobro_hasta = (guardado && guardado.sin_cobro_hasta) || "";
-    info.retiene = guardado ? !!guardado.retiene : info.retiene;
-    aplicarClienteLocal(cuit, info);
+    const guardado = await llamarBackend("upsert_cliente", { cuit, ...datos, ...(mandarTipos ? tipos : {}) });
+    aplicarClienteLocal(cuit, guardado ? clienteDesdeFila(guardado) : { ...antes, ...datos });
     renderTablaClientesAdmin();
-    e.target.reset();
+    cerrarModalCliente();
+    mostrarAviso(`Cliente ${editando ? "actualizado" : "dado de alta"}: ${esc(datos.nombre)}.`, "ok");
   } catch (err) {
     avisarError(err, "No se pudo guardar el cliente: ");
   }
@@ -874,32 +944,17 @@ function renderTablaClientesAdmin() {
   const filas = Object.entries(CLIENTES)
     .filter(([cuit, info]) => !q || cuit.includes(q) || info.nombre.toLowerCase().includes(q))
     .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
-    .map(
-      ([cuit, info]) =>
-        `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}${info.paga_por ? `<div class="archivo">paga por ${esc((CLIENTES[info.paga_por] || {}).nombre || formatCuit(info.paga_por))}</div>` : ""}${info.sin_cobro ? `<div class="archivo">sin cobro · ${leyendaSinCobro(info)}</div>` : ""}${info.retiene ? `<div class="archivo">retiene impuestos</div>` : ""}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`
-    );
+    .map(([cuit, info]) => {
+      const ret = textoRetenciones(info);
+      return `<tr class="fila-editable" data-cuit="${cuit}"><td class="cuit">${formatCuit(cuit)}</td><td>${esc(info.nombre)}${info.paga_por ? `<div class="archivo">paga por ${esc((CLIENTES[info.paga_por] || {}).nombre || formatCuit(info.paga_por))}</div>` : ""}${info.sin_cobro ? `<div class="archivo">sin cobro · ${leyendaSinCobro(info)}</div>` : ""}${ret ? `<div class="archivo">retiene: ${esc(ret)}</div>` : ""}</td><td>${esc(info.condicion_iva || "")}</td><td>${info.email ? esc(info.email) : '<span class="archivo">—</span>'}</td></tr>`;
+    });
   tbody.innerHTML = filas.join("") || `<tr><td colspan="4">Ningún cliente coincide con la búsqueda.</td></tr>`;
 }
 
-// Clic en una fila: carga el cliente en el formulario para editarlo. Sin
-// esto, cargar un email obligaba a reescribir a mano CUIT, nombre e IVA.
+// Clic en una fila: abre el pop-up para ver y editar el cliente.
 document.getElementById("tbody-clientes-admin").addEventListener("click", (e) => {
   const fila = e.target.closest("tr[data-cuit]");
-  if (!fila) return;
-  const cuit = fila.dataset.cuit;
-  const info = CLIENTES[cuit] || {};
-  const form = document.getElementById("form-cliente");
-  form.cuit.value = cuit;
-  form.nombre.value = info.nombre || "";
-  form.condicion_iva.value = info.condicion_iva || "";
-  form.direccion.value = info.direccion || "";
-  form.email.value = info.email || "";
-  form.paga_por.value = info.paga_por || "";
-  form.sin_cobro.value = info.sin_cobro || "";
-  form.sin_cobro_hasta.value = info.sin_cobro_hasta || "";
-  form.retiene.checked = !!info.retiene;
-  form.email.focus();
-  form.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (fila) abrirModalCliente(fila.dataset.cuit);
 });
 
 function esc(texto) {
