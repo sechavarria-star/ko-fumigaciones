@@ -11,8 +11,9 @@ limpieza de tanque.
 - La app es el Apps Script de Vicky (v.gagey@giwa-ia.com), script ID
   `1ZByFHFwd1VozgD3mrz8M1e_3q-S3iFsJ9A3kKAH1U1O1TAPAjhrhYHVL`, pegado a la planilla
   **"KO Fumigaciones · Básica"** (`17B9OTyTByMhyZKKe4dWiWUrytZmtzT3E7jzZDUyNgis`).
-- **El código migrado a Supabase ya está subido a ese proyecto** (HEAD). La web app
-  publicada sigue en la versión 3 (base = planilla) hasta republicar:
+- **En producción sobre Supabase desde 2026-11-02**: versión 5 publicada en el
+  deployment de siempre (la URL /exec no cambió). Script Properties
+  `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` cargadas en el proyecto. Deployment:
   deployment `AKfycbztyuTyy8wwmnDejviWZo8FidNInHPVXXJu5Q0JByib1ac04MTuc7Gy2EFNv2AH_BEF`
   (`clasp deploy -i <ese id>`, siempre el mismo).
 - **Respaldo**: versión 4 del proyecto = el código con planilla, antes de migrar.
