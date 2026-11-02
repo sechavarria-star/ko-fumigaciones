@@ -8,27 +8,37 @@ limpieza de tanque.
 
 ## Estado (2026-11-02)
 
-- **Hoy** la app es un Apps Script de Vicky (v.gagey@giwa-ia.com), script ID
-  `1ZByFHFwd1VozgD3mrz8M1e_3q-S3iFsJ9A3kKAH1U1O1TAPAjhrhYHVL`, que usa como base
-  la planilla **"KO Fumigaciones · Básica"**
-  (`17B9OTyTByMhyZKKe4dWiWUrytZmtzT3E7jzZDUyNgis`).
-- **Objetivo**: migrarla a Supabase, schema `kofumigaciones`.
-- **Hecho**: el schema ya está creado en Supabase (Giwa_Database), con las 10
-  tablas **vacías** → `supabase/01_estructura.sql`. Por pedido del usuario no se
-  cargaron los datos de la planilla (eran de demo).
-- **Pendiente**: el proyecto de Apps Script no está compartido con
-  s.echavarria@giwa-ia.com (clasp y Drive dicen "not found"). Vicky tiene que
-  compartirlo como Editor, o copiar su código con clasp a esta carpeta.
+- **Hoy en uso**: el Apps Script de Vicky (v.gagey@giwa-ia.com), script ID
+  `1ZByFHFwd1VozgD3mrz8M1e_3q-S3iFsJ9A3kKAH1U1O1TAPAjhrhYHVL`, pegado a la
+  planilla **"KO Fumigaciones · Básica"** (`17B9OTyTByMhyZKKe4dWiWUrytZmtzT3E7jzZDUyNgis`).
+  **No se toca** hasta validar la migración.
+- **Migrado (en prueba)**: `apps-script/` es ese mismo código pero con la base en
+  Supabase (schema `kofumigaciones`). Se sube a una **copia de prueba** standalone
+  de s.echavarria@giwa-ia.com: `1NpXK0x951PREmU7bWDNq037ApqTatDTyLc8NK8H0jKjHx0EQn8FNpYlo`.
+  - `apps-script/.clasp.json` apunta a la COPIA (un `clasp push` va ahí).
+  - `apps-script/.clasp.original.json` es el de Vicky, de referencia. No usarlo para push.
+  - Los dos están en `.gitignore`.
+- Base vacía: por pedido del usuario no se cargaron los datos de la planilla.
 
-## Plan de migración (a confirmar con el usuario antes de tocar código)
+## Cómo quedó la migración
 
-1. Leer el código y mapear cada lectura/escritura a la planilla, pestaña por pestaña.
-2. Reemplazarlas por llamadas a Supabase (PostgREST, `Accept-Profile` /
-   `Content-Profile: kofumigaciones`, service_role key en Script Properties —
-   mismo patrón que `../migracion/apps-script/Supabase.gs`), sin cambiar lo que ve
-   el usuario.
-3. Probar en una copia del proyecto; el de Vicky no se toca hasta validar.
-4. Decidir con el usuario si se migran datos reales o se arranca vacío.
+- `Supabase.js` → llamadas a la API de Supabase (Accept/Content-Profile
+  `kofumigaciones`, service_role desde Script Properties `SUPABASE_URL` y
+  `SUPABASE_SERVICE_ROLE_KEY`).
+- `Datos.js` → las funciones base (`_leerHoja`, `_agregarFila`, `_actualizarFila`,
+  `_escribirFila`, `_borrarFila`, `_filaDeId`, `cfg*`) mantienen nombre y forma,
+  pero leen y escriben en Supabase. Traducen las claves (`EdificioID` ↔
+  `edificio_id`) y los tipos (SI/NO ↔ boolean, «09:30» ↔ time, JSON texto ↔ jsonb,
+  vacío ↔ null). `_fila` es la columna `orden` de cada tabla, así el resto del
+  código (Abm, Cronograma, CertEdificio, Importar…) no cambió.
+- `Seeds.js` → siembra en Supabase (`sembrarConfig`, `sembrarTodo`, `restablecerDemo`).
+- `Código.js` → `api_bootstrap` trae las 10 tablas en paralelo.
+- El menú de la planilla (`onOpen`, `abrirApp`) quedó, pero en un script standalone
+  no se usa. No borrarlo sin confirmar.
+- Verificado en local: corriendo el original (con planilla simulada) y el migrado
+  (con Postgres + imitación de PostgREST), un recorrido de 41 pasos (siembra,
+  bootstrap, ABM, servicios, reclamos, visitas, certificados, actas, borrados)
+  da las mismas respuestas.
 
 ## Mapa
 
@@ -36,6 +46,9 @@ limpieza de tanque.
   `quimicos`, `fumigadores`, `reportes`, `reclamos`, `visitas`,
   `certificados_edificio`, `actas_tanque`, `config`. Una tabla por pestaña de la
   planilla, mismas columnas en snake_case. Solo service_role (RLS activo).
+- `supabase/02_ajustes_app.sql` → columna `orden` (identity) en cada tabla y claves
+  foráneas con `on delete set null` (y `cascade` para las unidades de un edificio).
+- `apps-script/` → el código de la app (ver arriba).
 
 ## Reglas
 
