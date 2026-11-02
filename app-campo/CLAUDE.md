@@ -8,17 +8,21 @@ limpieza de tanque.
 
 ## Estado (2026-11-02)
 
-- **Hoy en uso**: el Apps Script de Vicky (v.gagey@giwa-ia.com), script ID
-  `1ZByFHFwd1VozgD3mrz8M1e_3q-S3iFsJ9A3kKAH1U1O1TAPAjhrhYHVL`, pegado a la
-  planilla **"KO Fumigaciones · Básica"** (`17B9OTyTByMhyZKKe4dWiWUrytZmtzT3E7jzZDUyNgis`).
-  **No se toca** hasta validar la migración.
-- **Migrado (en prueba)**: `apps-script/` es ese mismo código pero con la base en
-  Supabase (schema `kofumigaciones`). Se sube a una **copia de prueba** standalone
-  de s.echavarria@giwa-ia.com: `1NpXK0x951PREmU7bWDNq037ApqTatDTyLc8NK8H0jKjHx0EQn8FNpYlo`.
-  - `apps-script/.clasp.json` apunta a la COPIA (un `clasp push` va ahí).
-  - `apps-script/.clasp.original.json` es el de Vicky, de referencia. No usarlo para push.
-  - Los dos están en `.gitignore`.
-- Base vacía: por pedido del usuario no se cargaron los datos de la planilla.
+- La app es el Apps Script de Vicky (v.gagey@giwa-ia.com), script ID
+  `1ZByFHFwd1VozgD3mrz8M1e_3q-S3iFsJ9A3kKAH1U1O1TAPAjhrhYHVL`, pegado a la planilla
+  **"KO Fumigaciones · Básica"** (`17B9OTyTByMhyZKKe4dWiWUrytZmtzT3E7jzZDUyNgis`).
+- **El código migrado a Supabase ya está subido a ese proyecto** (HEAD). La web app
+  publicada sigue en la versión 3 (base = planilla) hasta republicar:
+  deployment `AKfycbztyuTyy8wwmnDejviWZo8FidNInHPVXXJu5Q0JByib1ac04MTuc7Gy2EFNv2AH_BEF`
+  (`clasp deploy -i <ese id>`, siempre el mismo).
+- **Respaldo**: versión 4 del proyecto = el código con planilla, antes de migrar.
+  Volver atrás = `clasp deploy -i <id> -V 4`.
+- `apps-script/.clasp.json` apunta al proyecto de Vicky. `.clasp.copia.json` es una
+  copia de prueba standalone (`1NpXK0x951PREmU7bWDNq037ApqTatDTyLc8NK8H0jKjHx0EQn8FNpYlo`)
+  que ya no se usa. Los `.clasp*.json` están en `.gitignore`.
+- En Supabase: config por defecto (23 claves) y 5 edificios de ejemplo (204
+  unidades) tomados de las planillas de fumigación de KO. Datos reales: el SQL de
+  carga NO va al repo.
 
 ## Cómo quedó la migración
 
